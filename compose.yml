@@ -1,0 +1,18 @@
+version: '3'
+services:
+  yet-another-zeno:
+    build:
+      dockerfile: Dockerfile
+    environment:
+      - name=value
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1 \
+      - PYTHONUTF8=1
+      - PYTHONIOENCODING="UTF-8"
+      - PYTHONBREAKPOINT="IPython.terminal.debugger.set_trace"
+      - PIP_NO_CACHE_DIR=off
+      - PIP_DISABLE_PIP_VERSION_CHECK=on
+    volumes:
+      - ./:/workspace
+    stdin_open: true
+    tty: true
