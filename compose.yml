@@ -3,8 +3,8 @@ services:
   yet-another-zeno:
     build:
       dockerfile: Dockerfile
+    runtime: nvidia
     environment:
-      - name=value
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1 \
       - PYTHONUTF8=1
@@ -12,6 +12,8 @@ services:
       - PYTHONBREAKPOINT="IPython.terminal.debugger.set_trace"
       - PIP_NO_CACHE_DIR=off
       - PIP_DISABLE_PIP_VERSION_CHECK=on
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
     volumes:
       - ./:/workspace
     stdin_open: true
