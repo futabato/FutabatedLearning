@@ -6,7 +6,7 @@ Official Implementation (mxnet): <https://github.com/xcgoner/icml2019_zeno>
 
 ## Setup
 
-### DevContainer
+### Dev Containers
 
 1. Open Command Palette
 2. Select `Dev Containers: Reopen in Container`
