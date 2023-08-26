@@ -5,7 +5,7 @@ This is yet another PyTorch implementation of the paper "[Zeno: Distributed Stoc
 Official Implementation (mxnet): <https://github.com/xcgoner/icml2019_zeno>
 
 ## Setup
-s
+
 ### DevContainer
 
 1. Open Command Palette
