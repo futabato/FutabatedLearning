@@ -16,7 +16,8 @@ jobs:
   linter:
 
     runs-on: ubuntu-latest
-
+    env:
+      PYTHONPATH: /workspace/src/
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python 3.10
