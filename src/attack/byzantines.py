@@ -8,7 +8,7 @@ def no_byzantine(v, f):
         v (_type_): _description_
         f (_type_): _description_
     """
-    pass
+    return v
 
 
 def gaussian_attack(v, f):

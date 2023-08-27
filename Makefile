@@ -1,8 +1,8 @@
 .PHONY: lint, run
 lint:
-	poetry run isort ./src/
-	poetry run black ./src/
-	poetry run pflake8 ./src/
-	poetry run mypy ./src/
+	poetry run isort ./src/ ./tests/
+	poetry run black ./src/ ./tests/
+	poetry run pflake8 ./src/ ./tests/
+	poetry run mypy ./src/ ./tests/
 test:
-	poetry run pytest
+	poetry run pytest ./tests/
