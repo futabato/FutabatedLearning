@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  linter:
 
     runs-on: ubuntu-latest
 
@@ -32,13 +32,13 @@ jobs:
         isort ./src/ ./tests/
     - name: Format with black
       run: |
-        black --line-length=79 ./src/ ./tests
+        black --line-length=79 ./src/ ./tests/
     - name: Lint with flake8
       run: |
-        flake8 --max-line-length=79 --ignore=E203,W503 ./src/ ./tests
+        flake8 --max-line-length=79 --ignore=E203,W503 ./src/ ./tests/
     - name: Lint with mypy
       run: |
-        mypy --ignore-missing-imports --no-strict-optional ./src ./tests
+        mypy --ignore-missing-imports --no-strict-optional ./src ./tests/
     - name: Test with pytest
       run: |
         pytest ./tests/
