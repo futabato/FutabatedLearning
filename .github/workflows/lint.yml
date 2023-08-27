@@ -26,16 +26,19 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install isort==5.12.0 black==23.7.0 flake8==6.0.0 mypy==1.5.1
+        pip install isort==5.12.0 black==23.7.0 flake8==6.0.0 mypy==1.5.1 pytest==7.4.0
     - name: Format with isort
       run: |
-        isort ./src/
+        isort ./src/ ./tests/
     - name: Format with black
       run: |
-        black ./src/ --line-length=79
+        black --line-length=79 ./src/ ./tests
     - name: Lint with flake8
       run: |
-        flake8 ./src/ --max-line-length=79 --ignore=E203,W503
+        flake8 --max-line-length=79 --ignore=E203,W503 ./src/ ./tests
     - name: Lint with mypy
       run: |
-        mypy --ignore-missing-imports --no-strict-optional ./src
+        mypy --ignore-missing-imports --no-strict-optional ./src ./tests
+    - name: Test with pytest
+      run: |
+        pytest ./tests/
