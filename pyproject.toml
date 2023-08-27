@@ -30,6 +30,11 @@ line-length = 79
 max-line-length = 79
 extend-ignore = ["E203", "W503"]
 
+[tool.mypy]
+python_version = "3.10"
+no_strict_optional = true
+ignore_missing_imports = true
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
