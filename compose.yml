@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
     runtime: nvidia
     environment:
+      - PYTHONPATH=/workspace/src/
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1 \
       - PYTHONUTF8=1
