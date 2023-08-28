@@ -40,5 +40,5 @@ jobs:
         mypy --ignore-missing-imports --no-strict-optional ./src ./tests/
     - name: Test with pytest
       run: |
-        echo "PYTHONPATH=$GITHUB_WORKSPACE/src/" >> $GITHUB_ENV
+        echo "PYTHONPATH=/home/runner/work/Yet-Another-Zeno/Yet-Another-Zeno/src/" >> $GITHUB_ENV
         pytest ./tests/
