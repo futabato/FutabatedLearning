@@ -8,7 +8,7 @@ def no_byzantine(v, f):
     pass
 
 
-def marginal_median(gradients, net, lr, f=0, byz=no_byzantine):
+def marginal_median(gradients, net, lr, f=0, byzantine_fn=no_byzantine):
     # X is a 2d list of nd array
 
     # Concatenate all elements in gradients into param_list
@@ -17,7 +17,7 @@ def marginal_median(gradients, net, lr, f=0, byz=no_byzantine):
     ]
 
     # Apply the byzantine function to param_list
-    byz(param_list, f)
+    byzantine_fn(param_list, f)
 
     # Sort the concatenated array
     sorted_array = torch.sort(torch.cat(param_list, dim=-1))
@@ -43,7 +43,7 @@ def marginal_median(gradients, net, lr, f=0, byz=no_byzantine):
             idx += numel
 
 
-def simple_mean(gradients, net, lr, f=0, byz=no_byzantine):
+def simple_mean(gradients, net, lr, f=0, byzantine_fn=no_byzantine):
     # X is a 2d list of nd array
 
     # Concatenate all elements in gradients into param_list
@@ -52,7 +52,7 @@ def simple_mean(gradients, net, lr, f=0, byz=no_byzantine):
     ]
 
     # Apply the byzantine function to param_list
-    byz(param_list, f)
+    byzantine_fn(param_list, f)
 
     # Calculate the mean_nd
     # by taking the mean along the last dimension of the concatenated array
@@ -69,7 +69,7 @@ def simple_mean(gradients, net, lr, f=0, byz=no_byzantine):
             idx += numel
 
 
-def krum(gradients, net, lr, f=0, byz=no_byzantine):
+def krum(gradients, net, lr, f=0, byzantine_fn=no_byzantine):
     # X is a 2d list of nd array
 
     # Concatenate all elements in gradients into param_list
@@ -78,7 +78,7 @@ def krum(gradients, net, lr, f=0, byz=no_byzantine):
     ]
 
     # Apply the byzantine function to param_list
-    byz(param_list, f)
+    byzantine_fn(param_list, f)
 
     # Concatenate all elements in param_list into v
     v = torch.cat(param_list, dim=-1)
@@ -107,7 +107,15 @@ def krum(gradients, net, lr, f=0, byz=no_byzantine):
 
 
 def zeno(
-    gradients, net, loss_fun, lr, sample, rho_ratio, b, f=0, byz=no_byzantine
+    gradients,
+    net,
+    loss_fun,
+    lr,
+    sample,
+    rho_ratio,
+    b,
+    f=0,
+    byzantine_fn=no_byzantine,
 ):
     # X is a 2d list of nd array
 
@@ -120,7 +128,7 @@ def zeno(
     param_net = [xx.data.clone() for xx in net.parameters()]
 
     # Apply the byzantine function to param_list
-    byz(param_list, f)
+    byzantine_fn(param_list, f)
 
     # Get the output of the network on the given sample
     output = net(sample[0])
@@ -133,7 +141,7 @@ def zeno(
     rho = lr / rho_ratio
 
     # Compute the scores for each parameter in param_list
-    for i, param in enumerate(param_list):
+    for _, param in enumerate(param_list):
         idx = 0
         for _, p in enumerate(net.parameters()):
             if p.requires_grad:
