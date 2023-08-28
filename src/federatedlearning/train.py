@@ -223,7 +223,7 @@ loss=%f, epoch_time=%f, elapsed=%f"
                 acc_top1.avg,
                 acc_top5.avg,
                 train_cross_entropy.avg,
-                epoch_start_time - epoch_end_time,
+                epoch_end_time - epoch_start_time,
                 time.time() - train_start_time,
             )
         )
