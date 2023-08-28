@@ -16,8 +16,6 @@ jobs:
   linter:
 
     runs-on: ubuntu-latest
-    env:
-      PYTHONPATH: $GITHUB_WORKSPACE/src/
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python 3.10
@@ -42,4 +40,5 @@ jobs:
         mypy --ignore-missing-imports --no-strict-optional ./src ./tests/
     - name: Test with pytest
       run: |
+        echo "PYTHONPATH=$GITHUB_WORKSPACE/src/" >> $GITHUB_ENV
         pytest ./tests/
