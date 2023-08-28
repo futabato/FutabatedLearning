@@ -13,7 +13,7 @@ from models.model import Net
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from attack.byzantines import bitflip_attack, no_byzantine
+from attack.byzantines import bitflip_attack, labelflip_attack, no_byzantine
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -70,13 +70,9 @@ else:
     device = torch.device("cpu")
 
 # byzantine
-if args.byzantine_type == "label":
-    byzantine_type = no_byzantine
-else:
-    if args.byzantine_type == "bitflip":
-        byzantine_type = bitflip_attack
-    else:
-        byzantine_type = no_byzantine
+byzantine_type = (
+    bitflip_attack if args.byzantine_type == "bitflip" else no_byzantine
+)
 
 zeno_batch_size = args.zeno_size
 batch_size = args.batch_size
@@ -142,12 +138,11 @@ for epoch in tqdm(range(args.num_epochs)):
     epoch_start_time = time.time()
     net.train()
 
-    for i, (data, label) in enumerate(train_loader):
+    for minibatch_idx, (data, label) in enumerate(train_loader):
         data, label = data.to(device), label.to(device)
 
         if args.byzantine_type == "label":
-            if i < args.num_byzantines:
-                label = 9 - label
+            label = labelflip_attack(label, minibatch_idx, args.num_byzantines)
 
         optimizer.zero_grad()
         output = net(data)

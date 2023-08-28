@@ -33,3 +33,9 @@ def bitflip_attack(v, f):
         if i > 0:
             v[i][:] = -v[0]
     v[0][:] = -v[0]
+
+
+def labelflip_attack(label, minibatch_idx, num_byzantines):
+    if minibatch_idx < num_byzantines:
+        return 9 - label
+    return label
