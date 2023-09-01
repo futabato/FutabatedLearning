@@ -1,0 +1,4 @@
+defaults:
+  - mlflow: default
+  - train: default
+  - federatedlearning: default
