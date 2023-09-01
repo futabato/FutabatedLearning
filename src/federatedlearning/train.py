@@ -3,7 +3,6 @@ import random
 import time
 
 import hydra
-
 import mlflow
 import torch
 import torch.nn as nn
@@ -26,19 +25,12 @@ from attack.byzantines import bitflip_attack, labelflip_attack, no_byzantine
     config_name="config",
 )
 def main(cfg: DictConfig):
-    print("file://" + hydra.utils.get_original_cwd() + "/mlruns")
-    print()
-    print(cfg)
-    print()
-
     mlflow.set_tracking_uri(
         "file://" + hydra.utils.get_original_cwd() + "/mlruns"
     )
     mlflow.set_experiment(cfg.mlflow.experiment_name)
 
     with mlflow.start_run(run_name=cfg.mlflow.run_name):
-        mlflow.pytorch.autolog()
-
         torch.manual_seed(cfg.train.seed)
         random.seed(cfg.train.seed)
         torch.backends.cudnn.deterministic = True
@@ -59,10 +51,7 @@ def main(cfg: DictConfig):
         batch_size = cfg.train.batch_size
 
         # iid data or not
-        if cfg.federatedlearning.iid == 1:
-            is_shuffle = True
-        else:
-            is_shuffle = False
+        is_shuffle = True if cfg.federatedlearning.iid == 1 else False
 
         # Load CIFAR-10 datasets
         cifar10 = Cifar10Dataset(transform=transform)
