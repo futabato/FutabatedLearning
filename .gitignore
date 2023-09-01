@@ -4,6 +4,9 @@
 ### Datasets ###
 data/
 
+### Outputs ###
+outputs/
+
 ### MLflow ###
 mlruns/
 
