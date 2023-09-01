@@ -35,10 +35,11 @@ def main(cfg: DictConfig):
         random.seed(cfg.train.seed)
         torch.backends.cudnn.deterministic = True
 
-        if cfg.train.gpu is not None and cfg.train.gpu >= 0:
-            device = torch.device(f"cuda:{cfg.train.gpu}")
-        else:
-            device = torch.device("cpu")
+        device = (
+            torch.device(f"cuda:{cfg.train.gpu}")
+            if cfg.train.gpu is not None and cfg.train.gpu >= 0
+            else torch.device("cpu")
+        )
 
         # byzantine
         byzantine_type = (
@@ -46,9 +47,6 @@ def main(cfg: DictConfig):
             if cfg.federatedlearning.byzantine_type == "bitflip"
             else no_byzantine
         )
-
-        zeno_batch_size = cfg.federatedlearning.zeno_size
-        batch_size = cfg.train.batch_size
 
         # iid data or not
         is_shuffle = True if cfg.federatedlearning.iid == 1 else False
@@ -59,30 +57,29 @@ def main(cfg: DictConfig):
         # Create data loaders
         train_loader = DataLoader(
             cifar10.train_dataset,
-            batch_size=batch_size,
+            batch_size=cfg.train.batch_size,
             shuffle=is_shuffle,
             drop_last=True,
         )
         val_train_loader = DataLoader(
             cifar10.val_train_dataset,
-            batch_size=batch_size,
+            batch_size=cfg.train.batch_size,
             shuffle=False,
             drop_last=False,
         )
         val_test_loader = DataLoader(
             cifar10.val_test_dataset,
-            batch_size=batch_size,
+            batch_size=cfg.train.batch_size,
             shuffle=False,
             drop_last=False,
         )
         zeno_data = DataLoader(
             cifar10.zeno_dataset,
-            batch_size=zeno_batch_size,
+            batch_size=cfg.federatedlearning.zeno_size,
             shuffle=True,
             drop_last=False,
         )
 
-        # zeno_iter = iter(zeno_data)
         zeno_iter = itertools.cycle(zeno_data)
 
         net = Net(CLASSES=len(CIFAR10_CLASSES)).to(device)
@@ -97,16 +94,14 @@ def main(cfg: DictConfig):
         )
 
         # Initialize variables
-        num_workers = cfg.federatedlearning.num_workers
         lr = cfg.train.lr / cfg.train.batch_size
-        epochs = cfg.train.num_epochs
         iteration = 0
         grad_list = []
         worker_idx = 0
         train_start_time = time.time()
 
         # Training loop
-        for epoch in tqdm(range(epochs)):
+        for epoch in tqdm(range(cfg.train.num_epochs)):
             epoch_start_time = time.time()
             net.train()
 
@@ -135,7 +130,7 @@ def main(cfg: DictConfig):
                 iteration += 1
                 worker_idx += 1
 
-                if iteration % num_workers == 0:
+                if iteration % cfg.federatedlearning.num_workers == 0:
                     worker_idx = 0
                     if cfg.federatedlearning.aggregation == "median":
                         aggregators.marginal_median(
