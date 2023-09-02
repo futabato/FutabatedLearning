@@ -22,3 +22,15 @@ docker image build -t yet-another-zeno .
 ```
 docker container run --gpus all --rm -it -v ${PWD}:/workspace yet-another-zeno /bin/bash
 ```
+
+## Run an experiment
+
+```
+python3 src/federatedlearning/train.py
+```
+
+## Visualize, Search, Compare experiments
+
+```
+mlflow ui
+```
