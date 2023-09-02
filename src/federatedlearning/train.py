@@ -31,6 +31,10 @@ def main(cfg: DictConfig):
     mlflow.set_experiment(cfg.mlflow.experiment_name)
 
     with mlflow.start_run(run_name=cfg.mlflow.run_name):
+        mlflow.log_artifact("/workspace/outputs/.hydra/config.yaml")
+        mlflow.log_artifact("/workspace/outputs/.hydra/hydra.yaml")
+        mlflow.log_artifact("/workspace/outputs/.hydra/overrides.yaml")
+
         torch.manual_seed(cfg.train.seed)
         random.seed(cfg.train.seed)
         torch.backends.cudnn.deterministic = True
@@ -205,9 +209,13 @@ def main(cfg: DictConfig):
                         loss = criterion(output, label)
                         train_cross_entropy.update(loss.item(), data.size(0))
 
+                mlflow.log_metric("accuracy-top1", acc1)
+                mlflow.log_metric("accuracy-top5", acc5)
+                mlflow.log_metric("cross-entropy", loss)
+
                 print(
                     "[Epoch %d] validation: acc-top1=%f acc-top5=%f, \
-        loss=%f, epoch_time=%f, elapsed=%f"
+loss=%f, epoch_time=%f, elapsed=%f"
                     % (
                         epoch,
                         acc_top1.avg,
