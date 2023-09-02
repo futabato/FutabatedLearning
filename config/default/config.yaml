@@ -2,3 +2,6 @@ defaults:
   - mlflow: default
   - train: default
   - federatedlearning: default
+hydra:
+  run:
+    dir: "/workspace/outputs/"
