@@ -21,8 +21,8 @@ from attack.byzantines import bitflip_attack, labelflip_attack, no_byzantine
 
 @hydra.main(
     version_base="1.1",
-    config_path="/workspace/config/default",
-    config_name="config",
+    config_path="/workspace/config",
+    config_name="default",
 )
 def main(cfg: DictConfig):
     mlflow.set_tracking_uri(
@@ -209,9 +209,9 @@ def main(cfg: DictConfig):
                         loss = criterion(output, label)
                         train_cross_entropy.update(loss.item(), data.size(0))
 
-                mlflow.log_metric("accuracy-top1", acc1)
-                mlflow.log_metric("accuracy-top5", acc5)
-                mlflow.log_metric("cross-entropy", loss)
+                mlflow.log_metric("Accuracy-top1", acc1)
+                mlflow.log_metric("Accuracy-top5", acc5)
+                mlflow.log_metric("Cross-Entropy", loss)
 
                 print(
                     "[Epoch %d] validation: acc-top1=%f acc-top5=%f, \
