@@ -212,9 +212,9 @@ def main(cfg: DictConfig):
                         loss = criterion(output, label)
                         train_cross_entropy.update(loss.item(), data.size(0))
 
-                mlflow.log_metric("Accuracy-top1", acc1)
-                mlflow.log_metric("Accuracy-top5", acc5)
-                mlflow.log_metric("Cross-Entropy", loss)
+                mlflow.log_metric("Accuracy-top1", acc1, step=epoch)
+                mlflow.log_metric("Accuracy-top5", acc5, step=epoch)
+                mlflow.log_metric("Cross-Entropy", loss, step=epoch)
 
                 print(
                     "[Epoch %d] validation: acc-top1=%f acc-top5=%f, \
