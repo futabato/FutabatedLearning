@@ -46,7 +46,7 @@ def main(cfg: DictConfig):
         )
 
         # byzantine
-        byzantine_type = (
+        byzantine_fn = (
             bitflip_attack
             if cfg.federatedlearning.byzantine_type == "bitflip"
             else no_byzantine
@@ -145,7 +145,7 @@ def main(cfg: DictConfig):
                             net,
                             lr,
                             cfg.federatedlearning.num_byzantines,
-                            byzantine_type,
+                            byzantine_fn,
                         )
                     elif cfg.federatedlearning.aggregation == "krun":
                         aggregators.krum(
@@ -153,7 +153,7 @@ def main(cfg: DictConfig):
                             net,
                             lr,
                             cfg.federatedlearning.num_byzantines,
-                            byzantine_type,
+                            byzantine_fn,
                         )
                     elif cfg.federatedlearning.aggregation == "mean":
                         aggregators.simple_mean(
@@ -161,7 +161,7 @@ def main(cfg: DictConfig):
                             net,
                             lr,
                             cfg.federatedlearning.num_byzantines,
-                            byzantine_type,
+                            byzantine_fn,
                         )
                     elif cfg.federatedlearning.aggregation == "zeno":
                         zeno_sample = next(zeno_iter)
@@ -174,7 +174,7 @@ def main(cfg: DictConfig):
                             cfg.federatedlearning.rho_ratio,
                             cfg.federatedlearning.num_trimmed_values,
                             cfg.federatedlearning.num_byzantines,
-                            byzantine_type,
+                            byzantine_fn,
                         )
                     else:
                         aggregators.simple_mean(
@@ -182,7 +182,7 @@ def main(cfg: DictConfig):
                             net,
                             lr,
                             cfg.federatedlearning.num_byzantines,
-                            byzantine_type,
+                            byzantine_fn,
                         )
 
                     del grad_list
@@ -212,8 +212,8 @@ def main(cfg: DictConfig):
                         loss = criterion(output, label)
                         train_cross_entropy.update(loss.item(), data.size(0))
 
-                mlflow.log_metric("Accuracy-top1", acc1, step=epoch)
-                mlflow.log_metric("Accuracy-top5", acc5, step=epoch)
+                mlflow.log_metric("Accuracy-Top1", acc1, step=epoch)
+                mlflow.log_metric("Accuracy-Top5", acc5, step=epoch)
                 mlflow.log_metric("Cross-Entropy", loss, step=epoch)
 
                 print(
