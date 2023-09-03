@@ -112,7 +112,10 @@ def main(cfg: DictConfig):
             for minibatch_idx, (data, label) in enumerate(train_loader):
                 data, label = data.to(device), label.to(device)
 
-                if cfg.federatedlearning.byzantine_type == "label":
+                if (
+                    cfg.federatedlearning.byzantine_type == "label"
+                    and worker_idx < cfg.federatedlearning.num_byzantines
+                ):
                     label = labelflip_attack(
                         label,
                         minibatch_idx,
