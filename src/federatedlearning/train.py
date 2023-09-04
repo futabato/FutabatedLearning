@@ -35,6 +35,9 @@ def main(cfg: DictConfig):
         mlflow.log_artifact("/workspace/outputs/.hydra/hydra.yaml")
         mlflow.log_artifact("/workspace/outputs/.hydra/overrides.yaml")
 
+        mlflow.log_params(cfg.federatedlearning)
+        mlflow.log_params(cfg.train)
+
         torch.manual_seed(cfg.train.seed)
         random.seed(cfg.train.seed)
         torch.backends.cudnn.deterministic = True
