@@ -109,19 +109,13 @@ def main(cfg: DictConfig):
             epoch_start_time = time.time()
             net.train()
 
-            for minibatch_idx, (data, label) in enumerate(train_loader):
+            for _, (data, label) in enumerate(train_loader):
                 data, label = data.to(device), label.to(device)
-
                 if (
-                    cfg.federatedlearning.byzantine_type == "label"
+                    cfg.federatedlearning.byzantine_type == "labelflip"
                     and worker_idx < cfg.federatedlearning.num_byzantines
                 ):
-                    label = labelflip_attack(
-                        label,
-                        minibatch_idx,
-                        cfg.federatedlearning.num_byzantines,
-                    )
-
+                    label = labelflip_attack(label)
                 optimizer.zero_grad()
                 output = net(data)
                 loss = criterion(output, label)
