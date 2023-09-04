@@ -187,10 +187,13 @@ def main(cfg: DictConfig):
 
             epoch_end_time = time.time()
 
-            if epoch % cfg.train.interval == 0:
-                acc_top1 = AverageMeter("acc_top1")
-                acc_top5 = AverageMeter("acc_top5")
-                train_cross_entropy = AverageMeter("train_cross_entropy")
+            if (
+                epoch % cfg.train.interval == 0
+                or epoch == cfg.train.num_epochs - 1
+            ):
+                acc_top1 = AverageMeter("Accuracy-Top1")
+                acc_top5 = AverageMeter("Accuracy-Top5")
+                train_cross_entropy = AverageMeter("Train-Cross-Entropy")
 
                 # Accuracy on testing data
                 with torch.no_grad():
@@ -211,7 +214,7 @@ def main(cfg: DictConfig):
 
                 mlflow.log_metric("Accuracy-Top1", acc1, step=epoch)
                 mlflow.log_metric("Accuracy-Top5", acc5, step=epoch)
-                mlflow.log_metric("Cross-Entropy", loss, step=epoch)
+                mlflow.log_metric("Train-Cross-Entropy", loss, step=epoch)
 
                 print(
                     "[Epoch %d] validation: acc-top1=%f acc-top5=%f, \
