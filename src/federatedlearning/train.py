@@ -170,6 +170,7 @@ def main(cfg: DictConfig):
                             zeno_sample,
                             cfg.federatedlearning.rho_ratio,
                             cfg.federatedlearning.num_trimmed_values,
+                            device,
                             cfg.federatedlearning.num_byzantines,
                             byzantine_fn,
                         )

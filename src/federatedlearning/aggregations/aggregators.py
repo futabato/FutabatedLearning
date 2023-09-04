@@ -115,6 +115,7 @@ def zeno(
     sample,
     rho_ratio,
     b,
+    device,
     f=0,
     byzantine_fn=no_byzantine,
 ):
@@ -132,10 +133,11 @@ def zeno(
     byzantine_fn(param_list, f)
 
     # Get the output of the network on the given sample
-    output = net(sample[0])
+    data, label = sample[0].to(device), sample[1].to(device)
+    output = net(data)
 
     # Calculate the initial loss (loss_1)
-    loss_1_nd = loss_fun(output, sample[1])
+    loss_1_nd = loss_fun(output, label)
     loss_1 = loss_1_nd.mean().item()
 
     scores = []
@@ -151,8 +153,8 @@ def zeno(
                     p.data.shape
                 )
                 idx += numel
-        output = net(sample[0])
-        loss_2_nd = loss_fun(output, sample[1])
+        output = net(data)
+        loss_2_nd = loss_fun(output, label)
         loss_2 = loss_2_nd.mean().item()
 
         scores.append(loss_1 - loss_2 - rho * param.square().mean().item())
