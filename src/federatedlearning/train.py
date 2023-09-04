@@ -10,7 +10,7 @@ import torch.optim as optim
 from aggregations import aggregators
 from datasets.augment import transform
 from datasets.cifar10 import CIFAR10_CLASSES, Cifar10Dataset
-from evaluators.metrics import AverageMeter, accuracy
+from evaluations.metrics import AverageMeter, accuracy
 from models.model import Net
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
