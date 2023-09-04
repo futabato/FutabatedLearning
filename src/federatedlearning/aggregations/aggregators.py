@@ -52,7 +52,8 @@ def simple_mean(gradients, net, lr, f=0, byzantine_fn=no_byzantine):
     ]
 
     # Apply the byzantine function to param_list
-    byzantine_fn(param_list, f)
+    # NOTE: param_list: list[torch.Tensor * 20]
+    param_list = byzantine_fn(param_list, f)
 
     # Calculate the mean_nd
     # by taking the mean along the last dimension of the concatenated array

@@ -22,17 +22,23 @@ def gaussian_attack(v, f: int):
         v[i] = torch.randn(v[i].size()) * 200
 
 
-def bitflip_attack(v, f: int):
+def bitflip_attack(v: list[torch.Tensor], f: int) -> list[torch.Tensor]:
     """bit-flipping failure
 
     Args:
-        v (_type_): gradients
+        v (list[torch.Tensor]): gradients
         f (int): num_byzantines
+
+    Returns:
+        list[torch.Tensor]: bit flipped data
     """
-    for i in range(f):
-        if i > 0:
-            v[i][:] = -v[0]
-    v[0][:] = -v[0]
+    flipped_v = []
+    for worker, tensor in enumerate(v):
+        flipped_tensor = tensor.clone()
+        if worker < f:
+            flipped_tensor.view(-1)[:] = 1 - flipped_tensor.view(-1)[:]
+        flipped_v.append(flipped_tensor)
+    return flipped_v
 
 
 def labelflip_attack(label: torch.Tensor) -> torch.Tensor:
