@@ -7,16 +7,16 @@ import mlflow
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from aggregations import aggregators
-from datasets.augment import transform
-from datasets.cifar10 import CIFAR10_CLASSES, Cifar10Dataset
-from evaluations.metrics import AverageMeter, accuracy
-from models.model import Net
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from attack.byzantines import bitflip_attack, labelflip_attack, no_byzantine
+from federatedlearning.aggregations import aggregators
+from federatedlearning.datasets.augment import transform
+from federatedlearning.datasets.cifar10 import CIFAR10_CLASSES, Cifar10Dataset
+from federatedlearning.evaluations.metrics import AverageMeter, accuracy
+from federatedlearning.models.model import Net
 
 
 @hydra.main(

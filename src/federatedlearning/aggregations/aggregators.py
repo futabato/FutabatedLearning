@@ -47,7 +47,7 @@ def marginal_median(gradients, net, lr, f=0, byzantine_fn=no_byzantine):
 
 
 def simple_mean(
-    gradients: torch.Tensor,
+    gradients: list[list[torch.Tensor]],
     net: Net,
     lr: float,
     num_byzantines: int = 0,
