@@ -1,7 +1,10 @@
+from typing import Callable
+
 import numpy as np
 import torch
 
-from .scores import calc_sum_distances
+from federatedlearning.aggregations.scores import calc_sum_distances
+from federatedlearning.models.model import Net
 
 
 def no_byzantine(v, f):
@@ -43,28 +46,43 @@ def marginal_median(gradients, net, lr, f=0, byzantine_fn=no_byzantine):
             idx += numel
 
 
-def simple_mean(gradients, net, lr, f=0, byzantine_fn=no_byzantine):
+def simple_mean(
+    gradients: torch.Tensor,
+    net: Net,
+    lr: float,
+    num_byzantines: int = 0,
+    byzantine_fn: Callable = no_byzantine,
+):
+    """simple mean aggreagation
+
+    Args:
+        gradients (torch.Tensor): gradients tensor
+        net (Net): Nueral Network Model
+        lr (float): learning rate
+        num_byzantines (int, optional): number of byzantines
+        byzantine_fn (Callable, optional): byzantine attack function
+    """
     # X is a 2d list of nd array
 
     # Concatenate all elements in gradients into param_list
-    param_list = [
-        torch.cat([xx.view(-1, 1) for xx in x], dim=0) for x in gradients
+    param_list: list[torch.Tensor] = [
+        torch.cat([element.view(-1, 1) for element in row], dim=0)
+        for row in gradients
     ]
 
     # Apply the byzantine function to param_list
-    # NOTE: param_list: list[torch.Tensor * 20]
-    param_list = byzantine_fn(param_list, f)
+    param_list = byzantine_fn(param_list, num_byzantines)
 
     # Calculate the mean_nd
     # by taking the mean along the last dimension of the concatenated array
-    mean_nd = torch.mean(torch.cat(param_list, dim=-1), dim=-1)
+    mean_tensor = torch.mean(torch.cat(param_list, dim=-1), dim=-1)
 
     # Update the parameters in net using the calculated mean_nd and lr
     idx = 0
     for _, param in enumerate(net.parameters()):
         if param.requires_grad:
             numel = param.data.numel()
-            param.data -= lr * mean_nd[idx : (idx + numel)].view(
+            param.data -= lr * mean_tensor[idx : (idx + numel)].view(
                 param.data.shape
             )
             idx += numel
