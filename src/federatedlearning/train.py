@@ -9,6 +9,12 @@ import torch.nn as nn
 import torch.optim as optim
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
+from torcheval.metrics import (
+    MulticlassAccuracy,
+    MulticlassF1Score,
+    MulticlassPrecision,
+    MulticlassRecall,
+)
 from tqdm import tqdm
 
 from attack.byzantines import (
@@ -20,7 +26,7 @@ from attack.byzantines import (
 from federatedlearning.aggregations import aggregators
 from federatedlearning.datasets.augment import transform
 from federatedlearning.datasets.cifar10 import CIFAR10_CLASSES, Cifar10Dataset
-from federatedlearning.evaluations.metrics import AverageMeter, accuracy
+from federatedlearning.evaluations.metrics import AverageMeter
 from federatedlearning.models.model import Net
 
 
@@ -198,45 +204,67 @@ def main(cfg: DictConfig):
 
             epoch_end_time = time.time()
 
+            train_cross_entropy = AverageMeter("Train-Cross-Entropy")
+            acc1 = MulticlassAccuracy(
+                average="macro", num_classes=len(CIFAR10_CLASSES)
+            )
+            acc5 = MulticlassAccuracy(
+                average="macro",
+                num_classes=len(CIFAR10_CLASSES),
+                k=5,
+            )
+            precision = MulticlassPrecision(
+                average="macro", num_classes=len(CIFAR10_CLASSES)
+            )
+            recall = MulticlassRecall(
+                average="macro", num_classes=len(CIFAR10_CLASSES)
+            )
+            f1score = MulticlassF1Score(
+                average="macro", num_classes=len(CIFAR10_CLASSES)
+            )
+            # Accuracy on testing data
+            with torch.no_grad():
+                for data, label in val_test_loader:
+                    data, label = data.to(device), label.to(device)
+                    output = net(data)
+                    acc1.update(output, label)
+                    acc5.update(output, label)
+                    precision.update(output, label)
+                    recall.update(output, label)
+                    f1score.update(output, label)
+
+            # Cross entropy on training data
+            with torch.no_grad():
+                for data, label in val_train_loader:
+                    data, label = data.to(device), label.to(device)
+                    output = net(data)
+                    loss = criterion(output, label)
+                    train_cross_entropy.update(loss.item(), data.size(0))
+
+            mlflow.log_metric("Accuracy-Top1", acc1.compute(), step=epoch)
+            mlflow.log_metric("Accuracy-Top5", acc5.compute(), step=epoch)
+            mlflow.log_metric("Precision", precision.compute(), step=epoch)
+            mlflow.log_metric("Recall", recall.compute(), step=epoch)
+            mlflow.log_metric("Train-Cross-Entropy", loss, step=epoch)
+
             if (
                 epoch % cfg.train.interval == 0
                 or epoch == cfg.train.num_epochs - 1
             ):
-                acc_top1 = AverageMeter("Accuracy-Top1")
-                acc_top5 = AverageMeter("Accuracy-Top5")
-                train_cross_entropy = AverageMeter("Train-Cross-Entropy")
-
-                # Accuracy on testing data
-                with torch.no_grad():
-                    for data, label in val_test_loader:
-                        data, label = data.to(device), label.to(device)
-                        output = net(data)
-                        acc1, acc5 = accuracy(output, label, K=(1, 5))
-                        acc_top1.update(acc1[0], data.size(0))
-                        acc_top5.update(acc5[0], data.size(0))
-
-                # Cross entropy on training data
-                with torch.no_grad():
-                    for data, label in val_train_loader:
-                        data, label = data.to(device), label.to(device)
-                        output = net(data)
-                        loss = criterion(output, label)
-                        train_cross_entropy.update(loss.item(), data.size(0))
-
-                mlflow.log_metric("Accuracy-Top1", acc1, step=epoch)
-                mlflow.log_metric("Accuracy-Top5", acc5, step=epoch)
-                mlflow.log_metric("Train-Cross-Entropy", loss, step=epoch)
-
                 print(
-                    "[Epoch %d] validation: acc-top1=%f acc-top5=%f, \
-loss=%f, epoch_time=%f, elapsed=%f"
+                    "[Epoch %d] validation: Acc-top1=%f Acc-top5=%f, \
+trainloss=%f, epoch_time=%f, elapsed=%f\n                      Precison=%f, \
+Recall=%f, F1Score=%f"
                     % (
                         epoch,
-                        acc_top1.avg,
-                        acc_top5.avg,
+                        acc1.compute(),
+                        acc5.compute(),
                         train_cross_entropy.avg,
                         epoch_end_time - epoch_start_time,
                         time.time() - train_start_time,
+                        precision.compute(),
+                        recall.compute(),
+                        f1score.compute(),
                     )
                 )
 
