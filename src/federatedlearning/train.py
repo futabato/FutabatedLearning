@@ -11,7 +11,12 @@ from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from attack.byzantines import bitflip_attack, labelflip_attack, no_byzantine
+from attack.byzantines import (
+    bitflip_attack,
+    clever_labelflip_attack,
+    labelflip_attack,
+    no_byzantine,
+)
 from federatedlearning.aggregations import aggregators
 from federatedlearning.datasets.augment import transform
 from federatedlearning.datasets.cifar10 import CIFAR10_CLASSES, Cifar10Dataset
@@ -119,6 +124,11 @@ def main(cfg: DictConfig):
                     and worker_idx < cfg.federatedlearning.num_byzantines
                 ):
                     label = labelflip_attack(label)
+                elif (
+                    cfg.federatedlearning.byzantine_type == "clever-labelflip"
+                    and worker_idx < cfg.federatedlearning.num_byzantines
+                ):
+                    label = clever_labelflip_attack(label)
                 optimizer.zero_grad()
                 output = net(data)
                 loss = criterion(output, label)

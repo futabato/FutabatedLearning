@@ -1,6 +1,11 @@
 import torch
 
-from attack.byzantines import bitflip_attack, labelflip_attack, no_byzantine
+from attack.byzantines import (
+    bitflip_attack,
+    clever_labelflip_attack,
+    labelflip_attack,
+    no_byzantine,
+)
 
 
 def test_no_byzantine():
@@ -108,7 +113,24 @@ def test_bitflip_attack():
         assert torch.equal(actual[0], expected[f][0])
 
 
+def test_clever_labelflip_attack():
+    tensor = torch.Tensor(
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 5, 3], device="cpu"
+    )
+    expected = torch.Tensor(
+        [0, 1, 2, 5, 4, 3, 6, 7, 8, 9, 0, 3, 5], device="cpu"
+    )
+
+    # Byzantine Attack
+    actual = clever_labelflip_attack(tensor)
+
+    # Verify result
+    assert actual.shape == expected.shape
+    assert torch.equal(actual, expected)
+
+
 if __name__ == "__main__":
     test_no_byzantine()
     test_labelflip_attack()
     test_bitflip_attack()
+    test_clever_labelflip_attack()
