@@ -112,11 +112,11 @@ def main(cfg: DictConfig):
         )
 
         # Initialize variables
-        lr = cfg.train.lr / cfg.train.batch_size
-        iteration = 0
-        grad_list = []
-        worker_idx = 0
-        train_start_time = time.time()
+        lr: float = cfg.train.lr / cfg.train.batch_size
+        iteration: int = 0
+        grad_list: list = []
+        worker_idx: int = 0
+        train_start_time: float = time.time()
 
         # Training loop
         for epoch in tqdm(range(cfg.train.num_epochs)):
@@ -141,7 +141,7 @@ def main(cfg: DictConfig):
                 loss.backward()
                 optimizer.step()
 
-                grad_collect = []
+                grad_collect: list = []
                 for param in net.parameters():
                     if param.requires_grad:
                         grad_collect.append(param.grad.clone())
@@ -199,10 +199,9 @@ def main(cfg: DictConfig):
                             byzantine_fn,
                         )
 
-                    del grad_list
-                    grad_list = []
+                    grad_list.clear()
 
-            epoch_end_time = time.time()
+            epoch_end_time: float = time.time()
 
             train_cross_entropy = AverageMeter("Train-Cross-Entropy")
             acc1 = MulticlassAccuracy(
@@ -253,8 +252,8 @@ def main(cfg: DictConfig):
             ):
                 print(
                     "[Epoch %d] validation: Acc-top1=%f Acc-top5=%f, \
-trainloss=%f, epoch_time=%f, elapsed=%f\n                      Precison=%f, \
-Recall=%f, F1Score=%f"
+trainloss=%f, epoch_time=%f, elapsed=%f\n                      \
+Precison=%f, Recall=%f, F1Score=%f"
                     % (
                         epoch,
                         acc1.compute(),
