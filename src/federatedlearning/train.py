@@ -244,6 +244,7 @@ def main(cfg: DictConfig):
             mlflow.log_metric("Accuracy-Top5", acc5.compute(), step=epoch)
             mlflow.log_metric("Precision", precision.compute(), step=epoch)
             mlflow.log_metric("Recall", recall.compute(), step=epoch)
+            mlflow.log_metric("F1Score", f1score.compute(), step=epoch)
             mlflow.log_metric("Train-Cross-Entropy", loss, step=epoch)
 
             if (
