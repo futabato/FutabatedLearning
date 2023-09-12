@@ -253,7 +253,7 @@ def main(cfg: DictConfig):
             ):
                 print(
                     "[Epoch %d] validation: Acc-top1=%f Acc-top5=%f, \
-trainloss=%f, epoch_time=%f, elapsed=%f\n                      \
+trainloss=%f, epoch_time=%f, elapsed=%f\n                       \
 Precison=%f, Recall=%f, F1Score=%f"
                     % (
                         epoch,
