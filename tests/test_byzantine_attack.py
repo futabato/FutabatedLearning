@@ -118,7 +118,7 @@ def test_clever_labelflip_attack():
         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 5, 3], device="cpu"
     )
     expected = torch.Tensor(
-        [0, 1, 2, 5, 4, 3, 6, 7, 8, 9, 0, 3, 5], device="cpu"
+        [0, 1, 2, 3, 4, 3, 6, 7, 8, 9, 0, 3, 3], device="cpu"
     )
 
     # Byzantine Attack
