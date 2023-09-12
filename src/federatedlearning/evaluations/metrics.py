@@ -25,44 +25,6 @@ class AverageMeter(object):
         return fmtstr.format(**self.__dict__)
 
 
-def accuracy(output, target, K=(1,)):
-    max_k = max(K)
-    batch_size = target.size(0)
-
-    _, pred = output.topk(max_k, 1, True, True)
-    pred = pred.t()
-    correct = pred.eq(target.view(1, -1).expand_as(pred))
-
-    res = []
-    for k in K:
-        correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
-        res.append(correct_k.mul_(100.0 / batch_size))
-    return res
-
-
-class TopKAccuracy:
-    def __init__(self, k=1):
-        self.k = k
-        self.reset()
-
-    def reset(self):
-        self.topk_correct = [0] * self.k
-        self.total = 0
-
-    def update(self, labels, outputs):
-        topk_vals, topk_inds = outputs.topk(self.k, 1, True, True)
-        topk_correct = topk_inds.eq(labels.view(-1, 1).expand_as(topk_inds))
-        for i in range(self.k):
-            self.topk_correct[i] += topk_correct[:, i].sum().item()
-        self.total += labels.size(0)
-
-    def get(self):
-        topk_acc = [
-            correct * 100.0 / self.total for correct in self.topk_correct
-        ]
-        return topk_acc
-
-
 class CrossEntropy:
     def __init__(self):
         self.reset()
