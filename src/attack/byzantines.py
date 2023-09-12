@@ -74,7 +74,4 @@ def clever_labelflip_attack(label: torch.Tensor) -> torch.Tensor:
     Returns:
         torch.Tensor: flipped label tensor
     """
-    flipped_label = torch.where(label == 3, 10, label)
-    flipped_label = torch.where(flipped_label == 5, 3, flipped_label)
-    flipped_label = torch.where(flipped_label == 10, 5, flipped_label)
-    return flipped_label
+    return torch.where(label == 5, 3, label)
