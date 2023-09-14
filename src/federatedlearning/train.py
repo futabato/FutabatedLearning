@@ -119,11 +119,11 @@ def main(cfg: DictConfig):
         train_start_time: float = time.time()
 
         # Training loop
-        for epoch in tqdm(range(cfg.train.num_epochs)):
+        for epoch in tqdm(range(1, cfg.train.num_epochs + 1)):
             epoch_start_time = time.time()
             net.train()
 
-            for _, (data, label) in enumerate(train_loader):
+            for data, label in train_loader:
                 data, label = data.to(device), label.to(device)
                 if (
                     cfg.federatedlearning.byzantine_type == "labelflip"
@@ -249,7 +249,7 @@ def main(cfg: DictConfig):
 
             if (
                 epoch % cfg.train.interval == 0
-                or epoch == cfg.train.num_epochs - 1
+                or epoch == cfg.train.num_epochs
             ):
                 print(
                     "[Epoch %d] validation: Acc-top1=%f Acc-top5=%f, \
