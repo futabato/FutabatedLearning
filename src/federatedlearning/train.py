@@ -204,7 +204,7 @@ def main(cfg: DictConfig):
             epoch_end_time: float = time.time()
 
             train_cross_entropy = AverageMeter("Train-Cross-Entropy")
-            acc1 = MulticlassAccuracy(
+            accuracy = MulticlassAccuracy(
                 average="macro", num_classes=len(CIFAR10_CLASSES)
             )
             acc5 = MulticlassAccuracy(
@@ -240,8 +240,7 @@ def main(cfg: DictConfig):
                     loss = criterion(output, label)
                     train_cross_entropy.update(loss.item(), data.size(0))
 
-            mlflow.log_metric("Accuracy-Top1", acc1.compute(), step=epoch)
-            mlflow.log_metric("Accuracy-Top5", acc5.compute(), step=epoch)
+            mlflow.log_metric("Accuracy-Top1", accuracy.compute(), step=epoch)
             mlflow.log_metric("Precision", precision.compute(), step=epoch)
             mlflow.log_metric("Recall", recall.compute(), step=epoch)
             mlflow.log_metric("F1Score", f1score.compute(), step=epoch)
@@ -252,13 +251,11 @@ def main(cfg: DictConfig):
                 or epoch == cfg.train.num_epochs
             ):
                 print(
-                    "[Epoch %d] validation: Acc-top1=%f Acc-top5=%f, \
-trainloss=%f, epoch_time=%f, elapsed=%f\n                       \
-Precison=%f, Recall=%f, F1Score=%f"
+                    "\n[Epoch %d] train-loss=%f, epoch_time=%f, elapsed=%f\n \
+\t  validation: Accuracy=%f, Precison=%f, Recall=%f, F1Score=%f"
                     % (
                         epoch,
-                        acc1.compute(),
-                        acc5.compute(),
+                        accuracy.compute(),
                         train_cross_entropy.avg,
                         epoch_end_time - epoch_start_time,
                         time.time() - train_start_time,
@@ -267,6 +264,52 @@ Precison=%f, Recall=%f, F1Score=%f"
                         f1score.compute(),
                     )
                 )
+        # Accuracy on testing data
+        test_acc1 = MulticlassAccuracy(
+            average="macro", num_classes=len(CIFAR10_CLASSES)
+        )
+        test_precision = MulticlassPrecision(
+            average="macro", num_classes=len(CIFAR10_CLASSES)
+        )
+        test_recall = MulticlassRecall(
+            average="macro", num_classes=len(CIFAR10_CLASSES)
+        )
+        test_f1score = MulticlassF1Score(
+            average="macro", num_classes=len(CIFAR10_CLASSES)
+        )
+
+        with torch.no_grad():
+            for data, label in val_test_loader:
+                data, label = data.to(device), label.to(device)
+                output = net(data)
+                test_acc1.update(output, label)
+                test_precision.update(output, label)
+                test_recall.update(output, label)
+                test_f1score.update(output, label)
+                confusion_matrix.update(output, label)
+
+        plt.figure(figsize=(10, 8))
+        cm = confusion_matrix.compute()
+        print(f"confusion matrix: {cm}")
+        df_cm = pd.DataFrame(
+            cm, columns=CIFAR10_CLASSES, index=CIFAR10_CLASSES
+        )
+        df_cm.columns.name = "Predicted"
+        df_cm.index.name = "Actual"
+        sns.heatmap(
+            df_cm,
+            square=True,
+            cbar=True,
+            annot=True,
+            cmap="Blues",
+        )
+        plt.savefig("confusion_matrix.png")
+
+        mlflow.log_metric("Test-Accuracy-Top1", test_acc1.compute())
+        mlflow.log_metric("Test-Precision", test_precision.compute())
+        mlflow.log_metric("Test-Recall", test_recall.compute())
+        mlflow.log_metric("Test-F1Score", test_f1score.compute())
+        mlflow.log_artifact("confusion_matrix.png")
 
 
 if __name__ == "__main__":
