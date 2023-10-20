@@ -102,7 +102,7 @@ def main(cfg: DictConfig):
             drop_last=False,
         )
 
-        zeno_iter = itertools.cycle(zeno_data)
+        zeno_iter: itertools.cycle[DataLoader] = itertools.cycle(zeno_data)
 
         net = Net(CLASSES=len(CIFAR10_CLASSES)).to(device)
 
@@ -258,6 +258,7 @@ def main(cfg: DictConfig):
                         train_cross_entropy.avg,
                         epoch_end_time - epoch_start_time,
                         time.time() - train_start_time,
+                        accuracy.compute(),
                         precision.compute(),
                         recall.compute(),
                         f1score.compute(),
