@@ -2,6 +2,7 @@ import itertools
 import random
 import time
 
+import pandas as pd
 import hydra
 import mlflow
 import torch
@@ -15,6 +16,9 @@ from torcheval.metrics import (
     MulticlassPrecision,
     MulticlassRecall,
 )
+from torcheval.metrics import MulticlassConfusionMatrix
+import seaborn as sns
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from attack.byzantines import (
@@ -70,7 +74,7 @@ def main(cfg: DictConfig):
         is_shuffle = True if cfg.federatedlearning.iid == 1 else False
 
         # Load CIFAR-10 datasets
-        cifar10 = Cifar10Dataset(transform=transform)
+        cifar10 = Cifar10Dataset(transform)
 
         # Create data loaders
         train_loader = DataLoader(
@@ -117,6 +121,7 @@ def main(cfg: DictConfig):
         grad_list: list = []
         worker_idx: int = 0
         train_start_time: float = time.time()
+        confusion_matrix = MulticlassConfusionMatrix(len(CIFAR10_CLASSES))
 
         # Training loop
         for epoch in tqdm(range(1, cfg.train.num_epochs + 1)):
@@ -207,11 +212,6 @@ def main(cfg: DictConfig):
             accuracy = MulticlassAccuracy(
                 average="macro", num_classes=len(CIFAR10_CLASSES)
             )
-            acc5 = MulticlassAccuracy(
-                average="macro",
-                num_classes=len(CIFAR10_CLASSES),
-                k=5,
-            )
             precision = MulticlassPrecision(
                 average="macro", num_classes=len(CIFAR10_CLASSES)
             )
@@ -226,8 +226,7 @@ def main(cfg: DictConfig):
                 for data, label in val_test_loader:
                     data, label = data.to(device), label.to(device)
                     output = net(data)
-                    acc1.update(output, label)
-                    acc5.update(output, label)
+                    accuracy.update(output, label)
                     precision.update(output, label)
                     recall.update(output, label)
                     f1score.update(output, label)
