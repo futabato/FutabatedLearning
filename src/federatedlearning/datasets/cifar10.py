@@ -1,4 +1,5 @@
 import torchvision.datasets as datasets
+from torch.utils.data import random_split
 
 
 class Cifar10Dataset:
@@ -31,11 +32,8 @@ class Cifar10Dataset:
             transform=transform,
             download=True,
         )
-        self.zeno_dataset = datasets.CIFAR10(
-            root=data_root_path,
-            train=True,
-            transform=transform,
-            download=True,
+        self.train_dataset, self.zeno_dataset = random_split(
+            dataset=self.train_dataset, lengths=[45000, 5000]
         )
 
 
