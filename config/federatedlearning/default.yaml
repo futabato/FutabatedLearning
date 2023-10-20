@@ -2,16 +2,16 @@
 num_workers: 20
 # number of faulty workers
 num_byzantines: 0
-# type of faiuers, bitflip or labelflip
+# type of failures, bitflip or labelflip
 byzantine_type: "labelflip"
-# aggregation method, mean, median, krun or zeno
-aggregation: "simple_mean"
+# aggregation method, "mean", "median", "krum" or "zeno"
+aggregation: "mean"
 # batch size of Zeno, n_{r} in the paper
 zeno_size: 4
 # in the paper, r = \frac{\gamma}{\rho}
 # ratio to learning late
 rho_ratio: 200
 # number of trimmed values
-num_trimmed_values: 12
+num_trimmed_values: 8
 # iid 1 means the workers are training on IID data
 iid: 1

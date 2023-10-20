@@ -1,12 +1,12 @@
 # batch size of the workers
 batch_size: 100
 # learning rate
-lr: 0.05
-# total number of epochs 
-num_epochs: 200
+lr: 0.1
+# total number of epochs
+num_epochs: 100
 # index of GPU to be used
 gpu: 0
 # log interval
-interval: 5
+interval: 1
 # random seed
 seed: 0

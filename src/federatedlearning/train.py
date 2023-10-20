@@ -160,7 +160,7 @@ def main(cfg: DictConfig):
                             cfg.federatedlearning.num_byzantines,
                             byzantine_fn,
                         )
-                    elif cfg.federatedlearning.aggregation == "krun":
+                    elif cfg.federatedlearning.aggregation == "krum":
                         aggregators.krum(
                             grad_list,
                             net,
