@@ -34,6 +34,7 @@ def bitflip_attack(
     gradients_list: list[torch.Tensor], num_byzantines: int
 ) -> list[torch.Tensor]:
     """bit-flipping failure
+    浮動小数点の符号を反転させることを想定。結果的に 1-value を計算している。
 
     Args:
         gradients_list (list[torch.Tensor]): gradients tensor list
