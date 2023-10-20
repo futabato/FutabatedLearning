@@ -81,10 +81,11 @@ def simple_mean(
     )
     # Update the parameters in net
     # using the calculated mean_manipulated_param_tensor and lr
-    for param, manipulated_param in zip(
-        net.parameters(), mean_manipulated_param_tensor
-    ):
-        param.data -= lr * manipulated_param
+    with torch.no_grad():
+        for param, manipulated_param in zip(
+            net.parameters(), mean_manipulated_param_tensor
+        ):
+            param.copy_(param.data - lr * manipulated_param)
 
 
 def krum(gradients, net, lr, f=0, byzantine_fn=no_byzantine):
