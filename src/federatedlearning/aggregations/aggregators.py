@@ -52,12 +52,12 @@ def simple_mean(
     lr: float,
     num_byzantines: int = 0,
     byzantine_fn: Callable = no_byzantine,
-):
-    """simple mean aggreagation
+) -> None:
+    """simple mean aggregation
 
     Args:
-        gradients (torch.Tensor): gradients tensor
-        net (Net): Nueral Network Model
+        gradients (list[list[torch.Tensor]]): gradients tensor
+        net (Net): Neural Network Model
         lr (float): learning rate
         num_byzantines (int, optional): number of byzantines
         byzantine_fn (Callable, optional): byzantine attack function
@@ -71,21 +71,20 @@ def simple_mean(
     ]
 
     # Apply the byzantine function to param_list
-    param_list = byzantine_fn(param_list, num_byzantines)
-
-    # Calculate the mean_nd
+    manipulated_param_list: list[torch.Tensor] = byzantine_fn(
+        param_list, num_byzantines
+    )
+    # Calculate the mean_manipulated_param_tensor
     # by taking the mean along the last dimension of the concatenated array
-    mean_tensor = torch.mean(torch.cat(param_list, dim=-1), dim=-1)
-
-    # Update the parameters in net using the calculated mean_nd and lr
-    idx = 0
-    for _, param in enumerate(net.parameters()):
-        if param.requires_grad:
-            numel = param.data.numel()
-            param.data -= lr * mean_tensor[idx : (idx + numel)].view(
-                param.data.shape
-            )
-            idx += numel
+    mean_manipulated_param_tensor: torch.Tensor = torch.mean(
+        torch.cat(manipulated_param_list, dim=-1), dim=-1
+    )
+    # Update the parameters in net
+    # using the calculated mean_manipulated_param_tensor and lr
+    for param, manipulated_param in zip(
+        net.parameters(), mean_manipulated_param_tensor
+    ):
+        param.data -= lr * manipulated_param
 
 
 def krum(gradients, net, lr, f=0, byzantine_fn=no_byzantine):
