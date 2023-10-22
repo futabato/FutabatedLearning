@@ -2,7 +2,6 @@ import itertools
 import random
 import time
 
-import pandas as pd
 import hydra
 import matplotlib.pyplot as plt
 import mlflow
@@ -20,9 +19,6 @@ from torcheval.metrics import (
     MulticlassPrecision,
     MulticlassRecall,
 )
-from torcheval.metrics import MulticlassConfusionMatrix
-import seaborn as sns
-import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from attack.byzantines import (
@@ -106,7 +102,9 @@ def main(cfg: DictConfig):
             drop_last=False,
         )
 
-        zeno_iter: itertools.cycle[DataLoader] = itertools.cycle(zeno_data)
+        zeno_iter: itertools.cycle[
+            tuple[torch.Tensor, torch.Tensor]
+        ] = itertools.cycle(zeno_data)
 
         net = Net(CLASSES=len(CIFAR10_CLASSES)).to(device)
 
@@ -258,7 +256,6 @@ def main(cfg: DictConfig):
 \t  validation: Accuracy=%f, Precision=%f, Recall=%f, F1Score=%f"
                     % (
                         epoch,
-                        accuracy.compute(),
                         train_cross_entropy.avg,
                         epoch_end_time - epoch_start_time,
                         time.time() - train_start_time,
