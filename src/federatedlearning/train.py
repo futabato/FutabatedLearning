@@ -4,7 +4,10 @@ import time
 
 import pandas as pd
 import hydra
+import matplotlib.pyplot as plt
 import mlflow
+import pandas as pd
+import seaborn as sns
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -12,6 +15,7 @@ from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 from torcheval.metrics import (
     MulticlassAccuracy,
+    MulticlassConfusionMatrix,
     MulticlassF1Score,
     MulticlassPrecision,
     MulticlassRecall,
