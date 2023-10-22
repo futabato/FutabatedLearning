@@ -29,6 +29,17 @@ docker container run --gpus all --rm -it -v ${PWD}:/workspace yet-another-zeno /
 python3 src/federatedlearning/train.py
 ```
 
+### Override configuration from the command line
+
+Example
+
+```
+python3 src/federatedlearning/train.py \
+    mlflow.run_name=exp001 \
+    federatedlearning.num_byzantines=8 federatedlearning.byzantine_type=clever-labelflip \
+    federatedlearning.aggregation=zeno
+```
+
 ## Visualize, Search, Compare experiments
 
 ```
