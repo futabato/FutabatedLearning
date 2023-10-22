@@ -251,7 +251,7 @@ def main(cfg: DictConfig):
             ):
                 print(
                     "\n[Epoch %d] train-loss=%f, epoch_time=%f, elapsed=%f\n \
-\t  validation: Accuracy=%f, Precison=%f, Recall=%f, F1Score=%f"
+\t  validation: Accuracy=%f, Precision=%f, Recall=%f, F1Score=%f"
                     % (
                         epoch,
                         accuracy.compute(),
