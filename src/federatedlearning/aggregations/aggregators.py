@@ -126,74 +126,123 @@ def krum(gradients, net, lr, f=0, byzantine_fn=no_byzantine):
 
 
 def zeno(
-    gradients,
-    net,
-    loss_fun,
-    lr,
-    sample,
-    rho_ratio,
-    b,
-    device,
-    f=0,
-    byzantine_fn=no_byzantine,
-):
-    # X is a 2d list of nd array
+    gradients: list[list[torch.Tensor]],
+    net: Net,
+    loss_fn: Callable,
+    lr: float,
+    sample: tuple[torch.Tensor, torch.Tensor],
+    rho_ratio: float = 200,
+    num_trimmed_values: int = 8,
+    device: torch.device = torch.device("cuda:0"),
+    num_byzantines: int = 0,
+    byzantine_fn: Callable = no_byzantine,
+) -> None:
+    """zeno
+    Reference: https://github.com/xcgoner/icml2019_zeno
 
-    # Concatenate all elements in gradients into param_list
-    param_list = [
-        torch.cat([xx.view(-1, 1) for xx in x], dim=0) for x in gradients
+    Args:
+        gradients (list[list[torch.Tensor]]): gradients tensor
+        net (Net): Neural Network Model
+        loss_fn (Callable): _description_
+        lr (float): learning rate
+        sample (tuple[torch.Tensor, torch.Tensor]): zeno mini-batch
+        rho_ratio (float, optional): regularization weight. Defaults to 200.
+        num_trimmed_values (int, optional):
+            number of trimmed workers. Defaults to 8.
+        device (_type_, optional):
+            device type responsible to load a tensor into memory.
+            Defaults to torch.device("cuda:0").
+        num_byzantines (int, optional): number of byzantines. Defaults to 0.
+        byzantine_fn (Callable, optional):
+            byzantine attack function. Defaults to no_byzantine.
+    """
+    # Create flattened tensors from gradients and store them in param_list
+    param_list: list[torch.Tensor] = [
+        torch.cat([element.view(-1, 1) for element in row], dim=0)
+        for row in gradients
     ]
+    param_list_length: int = len(param_list)
 
-    # Clone the current parameters of the network
-    param_net = [xx.data.clone() for xx in net.parameters()]
+    # Save a copy of the original network before updating its parameters.
+    original_net = copy.deepcopy(net)
 
-    # Apply the byzantine function to param_list
-    byzantine_fn(param_list, f)
+    # Apply the Byzantine function to param_list and get manipulated_param_list
+    manipulated_param_list: list[torch.Tensor] = byzantine_fn(
+        param_list, num_byzantines
+    )
 
-    # Get the output of the network on the given sample
+    # Step1: 入力データ(data)を現在のネットワークパラメータで処理し、
+    # それに基づいた損失を計算する。ここではまだ何も更新はされない
+    # Initialize data and labels, feed it to the network and calculate loss_1
     data, label = sample[0].to(device), sample[1].to(device)
     output = net(data)
+    loss_1: torch.Tensor = loss_fn(output, label).mean().item()
+    scores: list = []
+    # Calculate regularization parameter rho
+    rho: float = lr / rho_ratio  # default: 5e-4
 
-    # Calculate the initial loss (loss_1)
-    loss_1_nd = loss_fun(output, label)
-    loss_1 = loss_1_nd.mean().item()
+    # 勾配を使ってパラメータを一時的に更新する
+    # Parameter updates with gradients in a no computational graph environment
+    with torch.no_grad():
+        for i in range(param_list_length):
+            # Update the parameters of the model temporarily
+            for param, manipulated_param in zip(
+                net.parameters(), manipulated_param_list[i]
+            ):
+                param.copy_(param.data - lr * manipulated_param)
 
-    scores = []
-    rho = lr / rho_ratio
+            # Step2: 更新したパラメータに対して再度同じデータを入力し、
+            # その出力と目標値(label)との差を表す新しい損失を計算する
+            # Calculate loss_2 after temporary update
+            output = net(data)
+            loss_2 = loss_fn(output, label).mean().item()
 
-    # Compute the scores for each parameter in param_list
-    for _, param in enumerate(param_list):
-        idx = 0
-        for _, p in enumerate(net.parameters()):
-            if p.requires_grad:
-                numel = p.data.numel()
-                p.data = param_net[_] - lr * param[idx : (idx + numel)].view(
-                    p.data.shape
-                )
-                idx += numel
-        output = net(data)
-        loss_2_nd = loss_fun(output, label)
-        loss_2 = loss_2_nd.mean().item()
+            # このプロセスで求めた loss_1 と loss_2 の差より、
+            # 各勾配がどれだけ減らすか（つまり、その勾配がどれだけ重要か）を評価する
+            # Evaluate score using the difference between loss_1 and loss_2
+            scores.append(
+                loss_1
+                - loss_2
+                - rho * torch.mean(param_list[i].square()).item()
+            )
+        # Check if number of gradients is equal to number of calculated scores
+        assert param_list_length == len(scores)
 
-        scores.append(loss_1 - loss_2 - rho * param.square().mean().item())
+        # 重みパラメータを Aggregator 呼び出し時のものに戻す
+        # Restore the original weights of the network
+        for param, original_param in zip(
+            net.parameters(), original_net.parameters()
+        ):
+            param.copy_(original_param)
 
-    scores_np = np.array(scores)
-    scores_idx = np.argsort(scores_np)
+    # scores の情報をもとに、効果的な勾配だけを選び出し、
+    # パラメータを最終的に更新していくindexを用意する
+    # Sort the scores in descending order
+    # and ignore the workers with the lowest scores
+    # scores = [value, ...]
+    # sorted_scores = [(sort 前の value の index, value), ...]
+    sorted_scores: list[tuple] = sorted(
+        enumerate(scores), key=lambda x: x[1], reverse=True
+    )
 
-    # Select the indices of the highest scores
-    scores_idx = scores_idx[-(len(param_list) - b) :].tolist()
-    g_aggregated = torch.zeros_like(param_list[0])
+    # 最低スコアの num_trimmed_values 個の worker を無視する
+    # つまり更新に採用するのは num_workers - num_trimmed_values 個 の worker になる
+    # Use top scoring workers only for final update
+    selected_param_list: list[torch.Tensor] = [
+        param_list[i] for i, _ in sorted_scores[:-num_byzantines]
+    ]
+    assert num_trimmed_values == param_list_length - len(selected_param_list)
 
-    # Aggregate the gradients corresponding to the selected indices
-    for idx in scores_idx:
-        g_aggregated += param_list[idx]
-    g_aggregated /= float(len(scores_idx))
+    # Calculate the mean of the selected parameters
+    mean_manipulated_param_tensor: torch.Tensor = torch.mean(
+        torch.cat(selected_param_list, dim=-1), dim=-1
+    )
+    print(f"mean_manipulated_param_tensor: {mean_manipulated_param_tensor}")
 
-    idx = 0
-    for _, param in enumerate(net.parameters()):
-        if param.requires_grad:
-            numel = param.data.numel()
-            param.data = param_net[_] - lr * g_aggregated[
-                idx : (idx + numel)
-            ].view(param.data.shape)
-            idx += numel
+    # Update the parameters in net
+    # using the calculated mean_manipulated_param_tensor and lr
+    with torch.no_grad():
+        for param, mean_manipulated_param in zip(
+            net.parameters(), mean_manipulated_param_tensor
+        ):
+            param.copy_(param.data - lr * mean_manipulated_param)
