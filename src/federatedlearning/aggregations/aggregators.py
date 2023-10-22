@@ -1,8 +1,9 @@
+import copy
 from typing import Callable
 
-import numpy as np
 import torch
 
+from attack.byzantines import no_byzantine
 from federatedlearning.aggregations.scores import calc_sum_distances
 from federatedlearning.models.model import Net
 
@@ -62,14 +63,11 @@ def simple_mean(
         num_byzantines (int, optional): number of byzantines
         byzantine_fn (Callable, optional): byzantine attack function
     """
-    # X is a 2d list of nd array
-
     # Concatenate all elements in gradients into param_list
     param_list: list[torch.Tensor] = [
         torch.cat([element.view(-1, 1) for element in row], dim=0)
         for row in gradients
     ]
-
     # Apply the byzantine function to param_list
     manipulated_param_list: list[torch.Tensor] = byzantine_fn(
         param_list, num_byzantines
@@ -79,6 +77,7 @@ def simple_mean(
     mean_manipulated_param_tensor: torch.Tensor = torch.mean(
         torch.cat(manipulated_param_list, dim=-1), dim=-1
     )
+
     # Update the parameters in net
     # using the calculated mean_manipulated_param_tensor and lr
     with torch.no_grad():
@@ -237,7 +236,6 @@ def zeno(
     mean_manipulated_param_tensor: torch.Tensor = torch.mean(
         torch.cat(selected_param_list, dim=-1), dim=-1
     )
-    print(f"mean_manipulated_param_tensor: {mean_manipulated_param_tensor}")
 
     # Update the parameters in net
     # using the calculated mean_manipulated_param_tensor and lr
