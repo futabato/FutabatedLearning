@@ -160,7 +160,7 @@ def zeno(
         torch.cat([element.view(-1, 1) for element in row], dim=0)
         for row in gradients
     ]
-    param_list_length: int = len(param_list)
+    param_list_length: int = len(param_list)  # number of workers
 
     # Save a copy of the original network before updating its parameters.
     original_net = copy.deepcopy(net)
@@ -204,10 +204,10 @@ def zeno(
                 - loss_2
                 - rho * torch.mean(param_list[i].square()).item()
             )
-        # Check if number of gradients is equal to number of calculated scores
+        # Check if number of workers is equal to number of calculated scores
         assert param_list_length == len(scores)
 
-        # 重みパラメータを Aggregator 呼び出し時のものに戻す
+        # ネットワークパラメータを Aggregator 呼び出し時のものに戻す
         # Restore the original weights of the network
         for param, original_param in zip(
             net.parameters(), original_net.parameters()
@@ -225,8 +225,9 @@ def zeno(
     )
 
     # 最低スコアの num_trimmed_values 個の worker を無視する
-    # つまり更新に採用するのは num_workers - num_trimmed_values 個 の worker になる
-    # Use top scoring workers only for final update
+    # つまり更新に採用するのは {num_workers - num_trimmed_values} 個 の worker になる
+    # Use top {num_workers - num_trimmed_values} scoring workers
+    # only for final update
     selected_param_list: list[torch.Tensor] = [
         param_list[i] for i, _ in sorted_scores[:-num_byzantines]
     ]
