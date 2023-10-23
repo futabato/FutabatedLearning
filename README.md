@@ -20,7 +20,7 @@ docker image build -t yet-another-zeno .
 ### Docker Container Run
 
 ```
-docker container run --gpus all --rm -it -p 5000:5000 -v ${PWD}:/workspace yet-another-zeno /bin/bash
+docker container run --gpus all --rm -it -p 5000:5000 -e PYTHONPATH=/workspace/src/ -v ${PWD}:/workspace yet-another-zeno /bin/bash
 ```
 
 ## Run an experiment
