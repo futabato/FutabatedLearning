@@ -231,7 +231,6 @@ def zeno(
     selected_param_list: list[torch.Tensor] = [
         param_list[i] for i, _ in sorted_scores[:-num_byzantines]
     ]
-    assert num_trimmed_values == param_list_length - len(selected_param_list)
 
     # Calculate the mean of the selected parameters
     mean_manipulated_param_tensor: torch.Tensor = torch.mean(
