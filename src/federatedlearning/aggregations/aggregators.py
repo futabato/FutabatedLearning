@@ -229,7 +229,7 @@ def zeno(
     # Use top {num_workers - num_trimmed_values} scoring workers
     # only for final update
     selected_param_list: list[torch.Tensor] = [
-        param_list[i] for i, _ in sorted_scores[:-num_byzantines]
+        param_list[i] for i, _ in sorted_scores[:-num_trimmed_values]
     ]
 
     # Calculate the mean of the selected parameters
