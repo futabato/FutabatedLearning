@@ -40,6 +40,15 @@ python3 src/federatedlearning/train.py \
     federatedlearning.aggregation=zeno
 ```
 
+### Run with multiple different configurations
+
+Example
+
+```
+python3 src/federatedlearning/train.py \
+    --multirun 'federatedlearning.num_byzantines=range(8,13)'
+```
+
 ## Visualize, Search, Compare experiments
 
 ```
