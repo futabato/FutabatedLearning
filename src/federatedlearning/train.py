@@ -42,7 +42,7 @@ from federatedlearning.models.model import Net
     config_path="/workspace/config",
     config_name="default",
 )
-def main(cfg: DictConfig):
+def main(cfg: DictConfig) -> MulticlassAccuracy:
     mlflow.set_tracking_uri(
         "file://" + hydra.utils.get_original_cwd() + "/mlruns"
     )

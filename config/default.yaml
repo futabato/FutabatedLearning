@@ -2,6 +2,15 @@ defaults:
   - mlflow: default
   - train: default
   - federatedlearning: default
+  - override hydra/sweeper: optuna
 hydra:
   run:
     dir: "/workspace/outputs/"
+  sweeper:
+    direction: minimize
+    study_name: Byzantine-Resilient Federated Learning
+    storage: null
+    n_trials: 20
+    n_jobs: 1
+    sampler:
+      seed: 42
