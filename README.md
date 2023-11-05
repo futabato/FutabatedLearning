@@ -36,7 +36,7 @@ Example
 ```
 python3 src/federatedlearning/train.py \
     mlflow.run_name=exp001 \
-    federatedlearning.num_byzantines=8 federatedlearning.byzantine_type=clever-labelflip \
+    federatedlearning.num_byzantines=8 federatedlearning.byzantine_type=bitflip \
     federatedlearning.aggregation=zeno
 ```
 
