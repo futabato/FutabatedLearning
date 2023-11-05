@@ -2,7 +2,7 @@ import torch
 
 from attack.byzantines import (
     bitflip_attack,
-    clever_labelflip_attack,
+    chosen_labelflip_attack,
     labelflip_attack,
     no_byzantine,
 )
@@ -122,7 +122,7 @@ def test_clever_labelflip_attack():
     )
 
     # Byzantine Attack
-    actual = clever_labelflip_attack(tensor)
+    actual = chosen_labelflip_attack(tensor)
 
     # Verify result
     assert actual.shape == expected.shape

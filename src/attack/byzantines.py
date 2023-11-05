@@ -66,13 +66,23 @@ def labelflip_attack(label: torch.Tensor) -> torch.Tensor:
     return 9 - label
 
 
-def clever_labelflip_attack(label: torch.Tensor) -> torch.Tensor:
-    """more clever label-flipping failure
+def chosen_labelflip_attack(
+    label: torch.Tensor,
+    choise_source_label: int = 5,
+    choice_destination_label: int = 3,
+) -> torch.Tensor:
+    """chosen label-flipping failure
 
     Args:
         label (torch.Tensor): label tensor
+        choise_source_label (int, optional):
+            label number of the source. Defaults to 5(dog).
+        choice_destination_label (int, optional):
+            label number of the destination. Defaults to 3(cat).
 
     Returns:
         torch.Tensor: flipped label tensor
     """
-    return torch.where(label == 5, 3, label)
+    return torch.where(
+        label == choise_source_label, choice_destination_label, label
+    )

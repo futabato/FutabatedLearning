@@ -26,7 +26,7 @@ from tqdm import tqdm
 
 from attack.byzantines import (
     bitflip_attack,
-    clever_labelflip_attack,
+    chosen_labelflip_attack,
     labelflip_attack,
     no_byzantine,
 )
@@ -159,10 +159,10 @@ def main(cfg: DictConfig):
                 ):
                     label = labelflip_attack(label)
                 elif (
-                    cfg.federatedlearning.byzantine_type == "clever-labelflip"
+                    cfg.federatedlearning.byzantine_type == "chosen-labelflip"
                     and worker_idx < cfg.federatedlearning.num_byzantines
                 ):
-                    label = clever_labelflip_attack(label)
+                    label = chosen_labelflip_attack(label)
                 optimizer.zero_grad()
                 output = net(data)
                 loss = criterion(output, label)
