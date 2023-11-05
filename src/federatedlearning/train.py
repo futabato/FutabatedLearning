@@ -86,14 +86,8 @@ def main(cfg: DictConfig):
             shuffle=is_shuffle,
             drop_last=True,
         )
-        val_train_loader: DataLoader = DataLoader(
-            cifar10.val_train_dataset,
-            batch_size=cfg.train.batch_size,
-            shuffle=False,
-            drop_last=False,
-        )
-        val_test_loader: DataLoader = DataLoader(
-            cifar10.val_test_dataset,
+        val_loader: DataLoader = DataLoader(
+            cifar10.val_dataset,
             batch_size=cfg.train.batch_size,
             shuffle=False,
             drop_last=False,
@@ -170,6 +164,8 @@ def main(cfg: DictConfig):
                 optimizer.zero_grad()
                 output = net(data)
                 loss = criterion(output, label)
+                train_cross_entropy.update(loss.item(), data.size(0))
+                mlflow.log_metric("Train-Cross-Entropy", loss, step=epoch)
                 loss.backward()
                 optimizer.step()
 
@@ -237,21 +233,11 @@ def main(cfg: DictConfig):
 
             # Accuracy on testing data
             with torch.no_grad():
-                for data, label in val_test_loader:
+                for data, label in val_loader:
                     data, label = data.to(device), label.to(device)
                     output = net(data)
                     accuracy.update(output, label)
-
-            # Cross entropy on training data
-            with torch.no_grad():
-                for data, label in val_train_loader:
-                    data, label = data.to(device), label.to(device)
-                    output = net(data)
-                    loss = criterion(output, label)
-                    train_cross_entropy.update(loss.item(), data.size(0))
-
             mlflow.log_metric("Accuracy-Top1", accuracy.compute(), step=epoch)
-            mlflow.log_metric("Train-Cross-Entropy", loss, step=epoch)
 
             if (
                 epoch % cfg.train.interval == 0
@@ -270,7 +256,7 @@ def main(cfg: DictConfig):
                 )
         # Accuracy on testing data
         with torch.no_grad():
-            for data, label in val_test_loader:
+            for data, label in val_loader:
                 data, label = data.to(device), label.to(device)
                 output = net(data)
                 test_accuracy.update(output, label)

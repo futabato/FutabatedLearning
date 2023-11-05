@@ -20,13 +20,7 @@ class Cifar10Dataset:
             transform=transform,
             download=True,
         )
-        self.val_train_dataset = datasets.CIFAR10(
-            root=data_root_path,
-            train=True,
-            transform=transform,
-            download=True,
-        )
-        self.val_test_dataset = datasets.CIFAR10(
+        self.val_dataset = datasets.CIFAR10(
             root=data_root_path,
             train=False,
             transform=transform,
