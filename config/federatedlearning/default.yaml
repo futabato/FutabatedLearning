@@ -2,8 +2,12 @@
 num_workers: 20
 # number of faulty workers
 num_byzantines: 0
-# type of failures, bitflip or labelflip
+# type of failures, bitflip or labelflip or chosen-labelflip
 byzantine_type: "labelflip"
+# label number of the source
+choise_source_label: 5
+# label number of the destination
+choice_destination_label: 3
 # aggregation method, "mean", "median", "krum" or "zeno"
 aggregation: "mean"
 # batch size of Zeno, n_{r} in the paper

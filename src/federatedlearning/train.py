@@ -162,7 +162,11 @@ def main(cfg: DictConfig):
                     cfg.federatedlearning.byzantine_type == "chosen-labelflip"
                     and worker_idx < cfg.federatedlearning.num_byzantines
                 ):
-                    label = chosen_labelflip_attack(label)
+                    label = chosen_labelflip_attack(
+                        label,
+                        cfg.federatedlearning.choise_source_label,
+                        cfg.federatedlearning.choice_destination_label,
+                    )
                 optimizer.zero_grad()
                 output = net(data)
                 loss = criterion(output, label)
