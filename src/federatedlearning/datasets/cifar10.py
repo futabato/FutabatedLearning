@@ -31,25 +31,6 @@ class Cifar10Dataset:
         )
 
 
-"""
-# Create data loaders
-train_loader = DataLoader(
-    train_dataset, batch_size=batch_size, shuffle=is_shuffle, drop_last=True
-)
-val_train_loader = DataLoader(
-    val_train_dataset, batch_size=batch_size, shuffle=False, drop_last=False
-)
-val_test_loader = DataLoader(
-    val_test_dataset, batch_size=batch_size, shuffle=False, drop_last=False
-)
-zeno_data = DataLoader(
-    zeno_dataset, batch_size=zeno_batch_size, shuffle=True, drop_last=False
-)
-
-zeno_iter = iter(zeno_data)
-# zeno_iter = itertools.cycle(zeno_data)
-"""
-
 CIFAR10_CLASSES = (
     "airplane",
     "automobile",
