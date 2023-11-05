@@ -114,27 +114,25 @@ def test_bitflip_attack():
 
 
 def test_clever_labelflip_attack():
-    for source_label in range(10):
-        for destination_label in range(10):
+    for src_label in range(10):
+        for dst_label in range(10):
             tensor = torch.Tensor(
                 [
-                    source_label,
-                    destination_label,
+                    src_label,
+                    dst_label,
                 ],
                 device="cpu",
             )
             expected = torch.Tensor(
                 [
-                    destination_label,
-                    destination_label,
+                    dst_label,
+                    dst_label,
                 ],
                 device="cpu",
             )
 
             # Byzantine Attack
-            actual = chosen_labelflip_attack(
-                tensor, source_label, destination_label
-            )
+            actual = chosen_labelflip_attack(tensor, src_label, dst_label)
 
             # Verify result
             assert actual.shape == expected.shape
