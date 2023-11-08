@@ -113,7 +113,7 @@ def test_bitflip_attack():
         assert torch.equal(actual[0], expected[f][0])
 
 
-def test_clever_labelflip_attack():
+def test_chosen_labelflip_attack():
     for src_label in range(10):
         for dst_label in range(10):
             tensor = torch.Tensor(
@@ -143,4 +143,4 @@ if __name__ == "__main__":
     test_no_byzantine()
     test_labelflip_attack()
     test_bitflip_attack()
-    test_clever_labelflip_attack()
+    test_chosen_labelflip_attack()
