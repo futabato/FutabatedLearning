@@ -158,7 +158,7 @@ def main(cfg: DictConfig) -> MulticlassAccuracy:
                 ):
                     label = chosen_labelflip_attack(
                         label,
-                        cfg.federatedlearning.choise_src_label,
+                        cfg.federatedlearning.choice_src_label,
                         cfg.federatedlearning.choice_dst_label,
                     )
                 optimizer.zero_grad()

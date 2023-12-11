@@ -5,7 +5,7 @@ num_byzantines: 0
 # type of failures, bitflip or labelflip or chosen-labelflip
 byzantine_type: "labelflip"
 # chosen-labelflip attack, label number of the source
-choise_src_label: 5
+choice_src_label: 5
 # chosen-labelflip attack, label number of the destination
 choice_dst_label: 3
 # aggregation method, "mean", "median", "krum" or "zeno"
