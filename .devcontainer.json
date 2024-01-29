@@ -1,7 +1,7 @@
 {
-    "name": "yet-another-zeno",
+    "name": "futabated-learning",
     "dockerComposeFile": "compose.yml",
-    "service": "yet-another-zeno",
+    "service": "futabated-learning",
     "customizations": {
         "vscode": {
             "extensions": [
