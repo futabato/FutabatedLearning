@@ -15,21 +15,13 @@ from omegaconf import DictConfig
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 from torch.utils.data import DataLoader
-from torcheval.metrics import (
-    MulticlassAccuracy,
-    MulticlassConfusionMatrix,
-    MulticlassF1Score,
-    MulticlassPrecision,
-    MulticlassRecall,
-)
+from torcheval.metrics import (MulticlassAccuracy, MulticlassConfusionMatrix,
+                               MulticlassF1Score, MulticlassPrecision,
+                               MulticlassRecall)
 from tqdm import tqdm
 
-from attack.byzantines import (
-    bitflip_attack,
-    chosen_labelflip_attack,
-    labelflip_attack,
-    no_byzantine,
-)
+from attack.byzantines import (bitflip_attack, chosen_labelflip_attack,
+                               labelflip_attack, no_byzantine)
 from federatedlearning.aggregations import aggregators
 from federatedlearning.datasets.augment import transform
 from federatedlearning.datasets.cifar10 import CIFAR10_CLASSES, Cifar10Dataset
@@ -103,7 +95,7 @@ def main(cfg: DictConfig) -> MulticlassAccuracy:
             tuple[torch.Tensor, torch.Tensor]
         ] = itertools.cycle(zeno_data)
 
-        net = Net(CLASSES=len(CIFAR10_CLASSES)).to(device)
+        net: Net = Net(CLASSES=len(CIFAR10_CLASSES)).to(device)
 
         # Loss function
         criterion: CrossEntropyLoss = nn.CrossEntropyLoss()
@@ -147,6 +139,9 @@ def main(cfg: DictConfig) -> MulticlassAccuracy:
 
             for data, label in train_loader:
                 data, label = data.to(device), label.to(device)
+                # 特定のepoch数 まで or から 攻撃を開始するならここで if を入れる
+                # < 50%以下, > 50%以上
+                # if epoch > (cfg.train.num_epochs + 1) // 2:
                 if (
                     cfg.federatedlearning.byzantine_type == "labelflip"
                     and worker_idx < cfg.federatedlearning.num_byzantines
@@ -169,6 +164,7 @@ def main(cfg: DictConfig) -> MulticlassAccuracy:
                 loss.backward()
                 optimizer.step()
 
+                # NOTE: このあたりに AttestedFL を適用させていく
                 grad_collect: list[torch.Tensor] = []
                 with torch.no_grad():
                     for param in net.parameters():
@@ -178,6 +174,7 @@ def main(cfg: DictConfig) -> MulticlassAccuracy:
                 iteration += 1
                 worker_idx += 1
 
+                # Aggregation
                 if iteration % cfg.federatedlearning.num_workers == 0:
                     worker_idx = 0
                     if cfg.federatedlearning.aggregation == "median":
