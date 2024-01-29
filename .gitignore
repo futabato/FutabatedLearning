@@ -10,6 +10,10 @@ outputs/
 ### MLflow ###
 mlruns/
 
+### Hydra ###
+.hydra
+multirun
+
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
