@@ -1,8 +1,6 @@
-# Yet-Another Zeno
+# FutabatedLearning
 
-This is yet another PyTorch implementation of the paper "[Zeno: Distributed Stochastic Gradient Descent with Suspicion-based Fault-tolerance](https://proceedings.mlr.press/v97/xie19b.html)"
-
-Official Implementation (mxnet): <https://github.com/xcgoner/icml2019_zeno>
+This is a federated learning framework
 
 ## Setup
 
@@ -14,13 +12,13 @@ Official Implementation (mxnet): <https://github.com/xcgoner/icml2019_zeno>
 ### Docker Image Build
 
 ```
-docker image build -t yet-another-zeno .
+docker image build -t futabated-learning .
 ```
 
 ### Docker Container Run
 
 ```
-docker container run --gpus all --rm -it -p 5000:5000 -e PYTHONPATH=/workspace/src/ -v ${PWD}:/workspace yet-another-zeno /bin/bash
+docker container run --gpus all --rm -it -p 5000:5000 -e PYTHONPATH=/workspace/src/ -v ${PWD}:/workspace futabated-learning /bin/bash
 ```
 
 ## Run an experiment
