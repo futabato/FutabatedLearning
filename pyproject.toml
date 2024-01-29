@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "yet-another-zeno"
+name = "futabated-learning"
 version = "0.1.0"
 description = ""
 authors = ["futabato <01futabato10@gmail.com>"]
 license = "MIT"
 readme = "README.md"
-packages = [{include = "yet_another_zeno"}]
+packages = [{include = "futabated-learning"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"

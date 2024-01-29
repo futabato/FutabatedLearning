@@ -1,6 +1,6 @@
 version: '3'
 services:
-  yet-another-zeno:
+  futabated-learning:
     build:
       dockerfile: Dockerfile
     runtime: nvidia
