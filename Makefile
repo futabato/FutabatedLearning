@@ -1,8 +1,6 @@
 .PHONY: lint, run
 lint:
-	poetry run isort ./src/ ./tests/
-	poetry run black ./src/ ./tests/
-	poetry run pflake8 ./src/ ./tests/
-	poetry run mypy ./src/ ./tests/
+	poetry run ruff format .
+	poetry run ruff check . --fix
 test:
 	poetry run pytest ./tests/
