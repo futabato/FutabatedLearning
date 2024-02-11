@@ -1,6 +1,6 @@
 # FutabatedLearning
 
-This is a federated learning framework
+This is a federated learning framework for research (not practical)
 
 ## Setup
 
@@ -24,7 +24,7 @@ docker container run --gpus all --rm -it -p 5000:5000 -e PYTHONPATH=/workspace/s
 ## Run an experiment
 
 ```
-python3 src/federatedlearning/train.py
+python src/federatedlearning/train.py
 ```
 
 ### Override configuration from the command line
@@ -32,7 +32,7 @@ python3 src/federatedlearning/train.py
 Example
 
 ```
-python3 src/federatedlearning/train.py \
+python src/federatedlearning/train.py \
     mlflow.run_name=exp001 \
     federatedlearning.num_byzantines=8 federatedlearning.byzantine_type=bitflip \
     federatedlearning.aggregation=zeno
@@ -43,7 +43,7 @@ python3 src/federatedlearning/train.py \
 Example
 
 ```
-python3 src/federatedlearning/train.py \
+python src/federatedlearning/train.py \
     --multirun 'federatedlearning.num_byzantines=range(8,13)'
 ```
 
