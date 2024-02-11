@@ -1,31 +1,47 @@
 {
-    // isort
-    "editor.codeActionsOnSave": {
-        "source.organizeImports": "explicit"
+    "[typescript]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+        },
     },
-    // black
-    "editor.formatOnSave": true,
-    "python.formatting.provider": "black",
-    "python.formatting.blackArgs": [
-        "--line-length=79"
+    "[python]": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports.ruff": "explicit",
+            "source.fixAll.ruff": "explicit"
+        },
+        "editor.defaultFormatter": "charliermarsh.ruff"
+    },
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python3.11",
+    "ruff.path": [
+        "${workspaceFolder}/.venv/bin/ruff"
     ],
-    // Pylance
-    "python.languageServer": "Pylance",
+    "ruff.lint.args": [
+        "--config=${workspaceFolder}/pyproject.toml",
+    ],
+    "mypy-type-checker.path": [
+        "${workspaceFolder}/.venv/bin/mypy"
+    ],
+    "mypy-type-checker.args": [
+        "--config=${workspaceFolder}/pyproject.toml"
+    ],
+    "python.analysis.autoImportCompletions": true,
     "python.analysis.completeFunctionParens": true,
-    // flake8
-    "python.linting.lintOnSave": true,
-    "python.linting.enabled": true,
-    "python.linting.pylintEnabled": false,
-    "python.linting.mypyEnabled": true,
-    "python.linting.flake8Enabled": true,
-    "python.linting.flake8Args": [
-        "--max-line-length=79",
-        "--ignore=E203,W503"
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/src/.venv/lib/python3.11/site-packages/",
+        "${workspaceFolder}/src/federatedlearning/",
+        "${workspaceFolder}/src/attack/"
     ],
-    // autoDocstring
-    "autoDocstring.docstringFormat": "google",
-    // mypy
-    "python.linting.ignorePatterns": [
-        "./venv/*"
-    ]
+    "python.autoComplete.extraPaths": [
+        "${workspaceFolder}/src/.venv/lib/python3.11/site-packages/",
+        "${workspaceFolder}/src/federatedlearning/",
+        "${workspaceFolder}/src/attack/"
+    ],
+    "python.testing.pytestArgs": [
+        "${workspaceFolder}/tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
 }

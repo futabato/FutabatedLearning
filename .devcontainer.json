@@ -2,11 +2,17 @@
     "name": "futabated-learning",
     "dockerComposeFile": "compose.yml",
     "service": "futabated-learning",
+    "containerEnv": {
+        "TZ": "Asia/Tokyo"
+    },
     "customizations": {
         "vscode": {
             "extensions": [
                 "ms-python.python",
                 "ms-python.vscode-pylance",
+                "charliermarsh.ruff",
+                "esbenp.prettier-vscode",
+                "ms-python.mypy-type-checker",
                 "njpwerner.autodocstring",
                 "oderwat.indent-rainbow",
                 "KevinRose.vsc-python-indent",
