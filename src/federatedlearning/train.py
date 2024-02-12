@@ -11,17 +11,25 @@ import seaborn as sns
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from attack.byzantines import (
+    bitflip_attack,
+    chosen_labelflip_attack,
+    labelflip_attack,
+    no_byzantine,
+)
 from omegaconf import DictConfig
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 from torch.utils.data import DataLoader
-from torcheval.metrics import (MulticlassAccuracy, MulticlassConfusionMatrix,
-                               MulticlassF1Score, MulticlassPrecision,
-                               MulticlassRecall)
+from torcheval.metrics import (
+    MulticlassAccuracy,
+    MulticlassConfusionMatrix,
+    MulticlassF1Score,
+    MulticlassPrecision,
+    MulticlassRecall,
+)
 from tqdm import tqdm
 
-from attack.byzantines import (bitflip_attack, chosen_labelflip_attack,
-                               labelflip_attack, no_byzantine)
 from federatedlearning.aggregations import aggregators
 from federatedlearning.datasets.augment import transform
 from federatedlearning.datasets.cifar10 import CIFAR10_CLASSES, Cifar10Dataset
