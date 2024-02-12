@@ -8,7 +8,9 @@ from argparse import Namespace
 from typing import Any
 
 import numpy as np
+import pandas as pd
 import torch
+from nptyping import Int, NDArray, Shape
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
@@ -67,8 +69,10 @@ if __name__ == "__main__":
         print(f"\n | Global Training Round : {epoch+1} |\n")
 
         global_model.train()
-        m = max(int(args.frac * args.num_users), 1)
-        idxs_users = np.random.choice(range(args.num_users), m, replace=False)
+        m: int = max(int(args.frac * args.num_users), 1)
+        idxs_users: NDArray[Shape[f"1, {m}"], Int] = np.random.choice(
+            range(args.num_users), m, replace=False
+        )
 
         for idx in idxs_users:
             local_model = LocalUpdate(
@@ -93,7 +97,8 @@ if __name__ == "__main__":
         train_loss.append(loss_avg)
 
         # Calculate avg training accuracy over all users at every epoch
-        list_acc, list_loss = [], []
+        list_acc: list[float] = []
+        list_loss: list[float] = []
         global_model.eval()
         for c in range(args.num_users):
             local_model = LocalUpdate(
