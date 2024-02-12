@@ -24,6 +24,7 @@ pillow = "9.5.0"
 spacy = "3.7.2"
 tensorboard = "^2.15.1"
 tensorboardx = "^2.6.2.2"
+nptyping = "^2.5.0"
 
 [tool.poetry.group.dev.dependencies]
 pyproject-flake8 = "^6.0.0.post1"
