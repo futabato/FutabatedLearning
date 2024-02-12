@@ -1,21 +1,24 @@
+from argparse import Namespace
+from typing import Any, Union
+
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
 
-def inference(args, model, test_dataset):
-    """ Returns the test accuracy and loss.
-    """
+def inference(
+    args: Namespace, model: Any, test_dataset: Any
+) -> tuple[float, Union[float, Any]]:
+    """Returns the test accuracy and loss."""
 
     model.eval()
     loss, total, correct = 0.0, 0.0, 0.0
 
-    device = 'cuda' if args.gpu else 'cpu'
+    device = "cuda" if args.gpu else "cpu"
     criterion = nn.NLLLoss().to(device)
-    testloader = DataLoader(test_dataset, batch_size=128,
-                            shuffle=False)
+    testloader = DataLoader(test_dataset, batch_size=128, shuffle=False)
 
-    for batch_idx, (images, labels) in enumerate(testloader):
+    for _, (images, labels) in enumerate(testloader):
         images, labels = images.to(device), labels.to(device)
 
         # Inference
@@ -29,5 +32,5 @@ def inference(args, model, test_dataset):
         correct += torch.sum(torch.eq(pred_labels, labels)).item()
         total += len(labels)
 
-    accuracy = correct/total
+    accuracy = correct / total
     return accuracy, loss

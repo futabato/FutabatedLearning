@@ -18,21 +18,21 @@
 """
 import logging
 from pathlib import Path
+from typing import Any
 
 import torch
 from leaf.pickle_dataset import PickleDataset
-from torch.utils.data import ConcatDataset
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 
 
 def get_LEAF_dataloader(
     dataset: str,
-    client_id=0,
-    batch_size=128,
+    client_id: int = 0,
+    batch_size: int = 128,
     data_root: str = None,
     pickle_root: str = None,
-):
+) -> tuple[Any, Any]:
     """Get dataloader with ``batch_size`` param for client with ``client_id``
 
     Args:
@@ -80,10 +80,10 @@ def get_LEAF_dataloader(
 
 def get_LEAF_all_test_dataloader(
     dataset: str,
-    batch_size=128,
+    batch_size: int = 128,
     data_root: str = None,
     pickle_root: str = None,
-):
+) -> Any:
     """Get dataloader for all clients' test pickle file
 
     Args:
@@ -106,7 +106,7 @@ def get_LEAF_all_test_dataloader(
         logging.error(
             f"""
                         No built test PickleDataset json file for {dataset} in {pdataset.pickle_root.resolve()}
-                        Please run `{BASE_DIR / 'leaf/gen_pickle_dataset.sh'} to generate {dataset} pickle files firstly!` 
+                        Please run `{BASE_DIR / 'leaf/gen_pickle_dataset.sh'} to generate {dataset} pickle files firstly!`
                         """
         )
     test_loader = torch.utils.data.DataLoader(

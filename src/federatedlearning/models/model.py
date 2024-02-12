@@ -1,8 +1,10 @@
+from typing import Any
+
 import torch.nn as nn
 
 
 class Net(nn.Module):
-    def __init__(self, CLASSES=10):
+    def __init__(self, CLASSES: int = 10) -> None:
         super(Net, self).__init__()
         self.features = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=3, padding=1),
@@ -30,7 +32,7 @@ class Net(nn.Module):
             nn.Linear(128, CLASSES),
         )
 
-    def forward(self, x):
+    def forward(self, x: Any) -> Any:
         x = self.features(x)
         x = self.classifier(x)
         return x

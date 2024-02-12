@@ -1,11 +1,12 @@
 import torchvision.datasets as datasets
+from matplotlib import transforms
 from torch.utils.data import random_split
 
 
 class Cifar10Dataset:
     def __init__(
         self,
-        transform,
+        transform: transforms.Compose,
         data_root_path: str = "/workspace/data",
     ) -> None:
         """Load CIFAR-10 datasets
