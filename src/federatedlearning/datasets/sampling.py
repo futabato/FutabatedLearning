@@ -4,6 +4,7 @@
 from typing import Any
 
 import numpy as np
+from nptyping import NDArray
 from torchvision import datasets, transforms
 
 
@@ -24,9 +25,7 @@ def mnist_iid(dataset: Any, num_users: int) -> dict:
     return dict_users
 
 
-def mnist_noniid(
-    dataset: Any, num_users: int
-) -> dict[int, np.ndarray[Any, Any]]:
+def mnist_noniid(dataset: Any, num_users: int) -> dict[int, NDArray[Any, Any]]:
     """
     Sample non-I.I.D client data from MNIST dataset
     :param dataset:
@@ -36,14 +35,14 @@ def mnist_noniid(
     # 60,000 training imgs -->  200 imgs/shard X 300 shards
     num_shards, num_imgs = 200, 300
     idx_shard: list[int] = list(range(num_shards))
-    dict_users: dict[int, np.ndarray[Any, Any]] = {
+    dict_users: dict[int, NDArray[Any, Any]] = {
         i: np.array([]) for i in range(num_users)
     }
-    idxs: np.ndarray[Any, Any] = np.arange(num_shards * num_imgs)
-    labels: np.ndarray[Any, Any] = dataset.train_labels.numpy()
+    idxs: NDArray[Any, Any] = np.arange(num_shards * num_imgs)
+    labels: NDArray[Any, Any] = dataset.train_labels.numpy()
 
     # sort labels
-    idxs_labels: np.ndarray[Any, Any] = np.vstack((idxs, labels))
+    idxs_labels: NDArray[Any, Any] = np.vstack((idxs, labels))
     idxs_labels = idxs_labels[:, idxs_labels[1, :].argsort()]
     idxs = idxs_labels[0, :]
 
@@ -61,7 +60,7 @@ def mnist_noniid(
 
 def mnist_noniid_unequal(
     dataset: Any, num_users: int
-) -> dict[int, np.ndarray[Any, Any]]:
+) -> dict[int, NDArray[Any, Any]]:
     """
     Sample non-I.I.D client data from MNIST dataset s.t clients
     have unequal amount of data
@@ -73,14 +72,14 @@ def mnist_noniid_unequal(
     # 60,000 training imgs --> 50 imgs/shard X 1200 shards
     num_shards, num_imgs = 1200, 50
     idx_shard: list[int] = list(range(num_shards))
-    dict_users: dict[int, np.ndarray[Any, Any]] = {
+    dict_users: dict[int, NDArray[Any, Any]] = {
         i: np.array([]) for i in range(num_users)
     }
-    idxs: np.ndarray[Any, Any] = np.arange(num_shards * num_imgs)
-    labels: np.ndarray[Any, Any] = dataset.train_labels.numpy()
+    idxs: NDArray[Any, Any] = np.arange(num_shards * num_imgs)
+    labels: NDArray[Any, Any] = dataset.train_labels.numpy()
 
     # sort labels
-    idxs_labels: np.ndarray[Any, Any] = np.vstack((idxs, labels))
+    idxs_labels: NDArray[Any, Any] = np.vstack((idxs, labels))
     idxs_labels = idxs_labels[:, idxs_labels[1, :].argsort()]
     idxs = idxs_labels[0, :]
 
@@ -192,9 +191,7 @@ def cifar_iid(dataset: Any, num_users: int) -> dict:
     return dict_users
 
 
-def cifar_noniid(
-    dataset: Any, num_users: int
-) -> dict[int, np.ndarray[Any, Any]]:
+def cifar_noniid(dataset: Any, num_users: int) -> dict[int, NDArray[Any, Any]]:
     """
     Sample non-I.I.D client data from CIFAR10 dataset
     :param dataset:
@@ -203,11 +200,11 @@ def cifar_noniid(
     """
     num_shards, num_imgs = 200, 250
     idx_shard: list[int] = list(range(num_shards))
-    dict_users: dict[int, np.ndarray[Any, Any]] = {
+    dict_users: dict[int, NDArray[Any, Any]] = {
         i: np.array([]) for i in range(num_users)
     }
-    idxs: np.ndarray[Any, Any] = np.arange(num_shards * num_imgs)
-    labels: np.ndarray[Any, Any] = np.array(dataset.targets)
+    idxs: NDArray[Any, Any] = np.arange(num_shards * num_imgs)
+    labels: NDArray[Any, Any] = np.array(dataset.targets)
 
     # sort labels
     idxs_labels = np.vstack((idxs, labels))
@@ -236,4 +233,4 @@ if __name__ == "__main__":
         ),
     )
     num: int = 100
-    d: dict[int, np.ndarray[Any, Any]] = mnist_noniid(dataset_train, num)
+    d: dict[int, NDArray[Any, Any]] = mnist_noniid(dataset_train, num)
