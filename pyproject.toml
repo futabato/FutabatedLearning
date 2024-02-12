@@ -61,6 +61,7 @@ select = [
     "E",
     "F",
     "W",
+    "I"
 ]
 ignore = [
 ]
@@ -76,6 +77,12 @@ max-line-length = 180
 # if,forなどの複雑性をどれくらい許容するか。if,for文が11以上あると警告
 # C901
 max-complexity = 15
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+known-first-party = ["musubi_restapi"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+split-on-trailing-comma = true
 
 [build-system]
 requires = ["poetry-core"]
