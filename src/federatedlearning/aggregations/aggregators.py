@@ -244,3 +244,15 @@ def zeno(
             net.parameters(), mean_manipulated_param_tensor
         ):
             param.copy_(param.data - lr * mean_manipulated_param)
+
+
+def average_weights(w: list[Any]) -> Any:
+    """FedAVG
+    Returns the average of the weights.
+    """
+    w_avg: Any = copy.deepcopy(w[0])
+    for key in w_avg.keys():
+        for i in range(1, len(w)):
+            w_avg[key] += w[i][key]
+        w_avg[key] = torch.div(w_avg[key], len(w))
+    return w_avg
