@@ -1,6 +1,8 @@
 # FutabatedLearning
 
-This is a federated learning framework for research (not practical)
+This is a federated learning framework for research (not practical).
+
+This implementation was developed by forking from [Federated-Learning (PyTorch)](https://github.com/AshwinRJ/Federated-Learning-PyTorch), a vanilla implementation of the paper "[Communication-Efficient Learning of Deep Networks from Decentralized Data](https://arxiv.org/abs/1602.05629)".
 
 ## Setup
 
@@ -23,32 +25,8 @@ docker container run --gpus all --rm -it -p 5000:5000 -e PYTHONPATH=/workspace/s
 
 ## Run an experiment
 
-```
-python src/federatedlearning/train.py
-```
-
-### Override configuration from the command line
-
-Example
+The baseline experiment with MNIST on MLP using GPU (if `gpu:0` is available)
 
 ```
-python src/federatedlearning/train.py \
-    mlflow.run_name=exp001 \
-    federatedlearning.num_byzantines=8 federatedlearning.byzantine_type=bitflip \
-    federatedlearning.aggregation=zeno
-```
-
-### Run with multiple different configurations
-
-Example
-
-```
-python src/federatedlearning/train.py \
-    --multirun 'federatedlearning.num_byzantines=range(8,13)'
-```
-
-## Visualize, Search, Compare experiments
-
-```
-mlflow ui
+python src/federatedlearning/main.py
 ```
