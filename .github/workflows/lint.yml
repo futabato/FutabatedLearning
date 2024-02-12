@@ -36,6 +36,6 @@ jobs:
           mypy --ignore-missing-imports --no-strict-optional ./src ./tests/
       - name: Test with pytest
         env:
-          PYTHONPATH: /home/runner/work/Yet-Another-Zeno/Yet-Another-Zeno/src
+          PYTHONPATH: /home/runner/work/FutabatedLearning/FutabatedLearning/src
         run: |
           pytest ./tests/
