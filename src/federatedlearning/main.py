@@ -232,7 +232,7 @@ def main(cfg: DictConfig) -> None:
 
         with open(f"/workspace/outputs/objects/{file_name}.pkl", "wb") as f:
             pickle.dump([train_loss, train_accuracy], f)
-        mlflow.log_artifact(file_name)
+        mlflow.log_artifact(f"/workspace/outputs/objects/{file_name}.pkl")
 
         print("\n Total Run Time: {0:0.4f}".format(time.time() - start_time))
 
