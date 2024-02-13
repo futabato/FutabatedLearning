@@ -92,13 +92,7 @@ def main(cfg: DictConfig) -> None:
         # Training
         train_loss: list[float] = []
         train_accuracy: list[float] = []
-        # val_acc_list: list[float] = []
-        # net_list: list[float] = []
-        # cv_loss: list[float] = []
-        # cv_acc: list[float] = []
         print_every: int = 2
-        # val_loss_pre: int = 0
-        # counter: int = 0
 
         for epoch in tqdm(range(cfg.train.epochs)):
             local_weights: list[float] = []
@@ -169,7 +163,7 @@ def main(cfg: DictConfig) -> None:
             list_acc: list[float] = []
             list_loss: list[float] = []
             global_model.eval()
-            for c in range(cfg.federatedlearning.num_users):
+            for _ in range(cfg.federatedlearning.num_users):
                 local_model = LocalUpdate(
                     cfg=cfg,
                     dataset=train_dataset,
@@ -226,7 +220,7 @@ def main(cfg: DictConfig) -> None:
         print("|---- Test Accuracy: {:.2f}%".format(100 * test_acc))
 
         # Saving the objects train_loss and train_accuracy:
-        file_name: str = "/workspace/outputs/objects/{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}].pkl".format(
+        file_name: str = "{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]".format(
             cfg.train.dataset,
             cfg.train.model,
             cfg.train.epochs,
@@ -236,7 +230,7 @@ def main(cfg: DictConfig) -> None:
             cfg.train.local_bs,
         )
 
-        with open(file_name, "wb") as f:
+        with open(f"/workspace/outputs/objects/{file_name}.pkl", "wb") as f:
             pickle.dump([train_loss, train_accuracy], f)
         mlflow.log_artifact(file_name)
 
@@ -248,27 +242,9 @@ def main(cfg: DictConfig) -> None:
         plt.plot(range(len(train_loss)), train_loss, color="r")
         plt.ylabel("Training loss")
         plt.xlabel("Communication Rounds")
-        plt.savefig(
-            "/workspace/outputs/objects/fed_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_loss.png".format(
-                cfg.train.dataset,
-                cfg.train.model,
-                cfg.train.epochs,
-                cfg.federatedlearning.frac,
-                cfg.federatedlearning.iid,
-                cfg.train.local_ep,
-                cfg.train.local_bs,
-            )
-        )
+        plt.savefig(f"/workspace/outputs/objects/fed_{file_name}_loss.png")
         mlflow.log_artifact(
-            "/workspace/outputs/objects/fed_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_loss.png".format(
-                cfg.train.dataset,
-                cfg.train.model,
-                cfg.train.epochs,
-                cfg.federatedlearning.frac,
-                cfg.federatedlearning.iid,
-                cfg.train.local_ep,
-                cfg.train.local_bs,
-            )
+            f"/workspace/outputs/objects/fed_{file_name}_loss.png"
         )
 
         # Plot Average Accuracy vs Communication rounds
@@ -277,27 +253,9 @@ def main(cfg: DictConfig) -> None:
         plt.plot(range(len(train_accuracy)), train_accuracy, color="k")
         plt.ylabel("Average Accuracy")
         plt.xlabel("Communication Rounds")
-        plt.savefig(
-            "/workspace/outputs/objects/fed_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_acc.png".format(
-                cfg.train.dataset,
-                cfg.train.model,
-                cfg.train.epochs,
-                cfg.federatedlearning.frac,
-                cfg.federatedlearning.iid,
-                cfg.train.local_ep,
-                cfg.train.local_bs,
-            )
-        )
+        plt.savefig(f"/workspace/outputs/objects/fed_{file_name}_acc.png")
         mlflow.log_artifact(
-            "/workspace/outputs/objects/fed_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_acc.png".format(
-                cfg.train.dataset,
-                cfg.train.model,
-                cfg.train.epochs,
-                cfg.federatedlearning.frac,
-                cfg.federatedlearning.iid,
-                cfg.train.local_ep,
-                cfg.train.local_bs,
-            )
+            f"/workspace/outputs/objects/fed_{file_name}_acc.png"
         )
 
 
