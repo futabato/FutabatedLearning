@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import copy
+import os
 import pickle
 import time
 from argparse import Namespace
@@ -35,6 +36,20 @@ if __name__ == "__main__":
         else torch.device("cpu")
     )
 
+    # Empty DataFrame for tracking client behaviors
+    client_behavior_df: list[pd.DataFrame] = [
+        pd.DataFrame(columns=["epoch", "local_loss", "local_weight_path"])
+        for _ in range(args.num_users)
+    ]
+    for i in range(args.num_users):
+        os.makedirs(f"/workspace/outputs/weights/client_{i}", exist_ok=True)
+    # Empty DataFrame for recoding global model
+    global_model_record_df: pd.DataFrame = pd.DataFrame(
+        columns=["epoch", "global_weight_path"]
+    )
+    os.makedirs("/workspace/outputs/weights/server", exist_ok=True)
+    os.makedirs("/workspace/outputs/csv", exist_ok=True)
+
     # load dataset and user groups
     train_dataset, test_dataset, user_groups = get_dataset(args)
 
@@ -65,7 +80,8 @@ if __name__ == "__main__":
     counter: int = 0
 
     for epoch in tqdm(range(args.epochs)):
-        local_weights, local_losses = [], []
+        local_weights: list[float] = []
+        local_losses: list[float] = []
         print(f"\n | Global Training Round : {epoch+1} |\n")
 
         global_model.train()
@@ -86,10 +102,35 @@ if __name__ == "__main__":
             )
             local_weights.append(copy.deepcopy(w))
             local_losses.append(copy.deepcopy(loss))
+            # Preparation for storing local training information in the DataFrame for attestedFL
+            torch.save(
+                w,
+                f"/workspace/outputs/weights/client_{idx}/local_model_epoch_{epoch}.pth",
+            )
+            local_training_info: dict = {
+                "epoch": epoch,
+                "local_loss": copy.deepcopy(loss),
+                "local_weight_path": f"/workspace/outputs/weights/client_{idx}/local_model_epoch_{epoch}.pth",
+            }
+            # Store local training information
+            client_behavior_df[idx] = pd.concat(
+                [
+                    client_behavior_df[idx],
+                    pd.DataFrame(local_training_info, index=[epoch]),
+                ],
+                ignore_index=True,
+            )
+            client_behavior_df[idx].to_csv(
+                f"/workspace/outputs/csv/client_{idx}_behavior.csv",
+                index=False,
+            )
 
         # update global weights (FedAVG)
         global_weights = average_weights(local_weights)
-
+        torch.save(
+            global_weights,
+            f"/workspace/outputs/weights/server/global_model_epoch_{epoch}.pth",
+        )
         # update global weights
         global_model.load_state_dict(global_weights)
 
@@ -111,6 +152,22 @@ if __name__ == "__main__":
             list_acc.append(acc)
             list_loss.append(loss)
         train_accuracy.append(sum(list_acc) / len(list_acc))
+
+        global_model_info: dict = {
+            "epoch": epoch,
+            "global_weight_path": f"/workspace/outputs/weights/server/global_model_epoch_{epoch}.pth",
+        }
+        global_model_record_df = pd.concat(
+            [
+                global_model_record_df,
+                pd.DataFrame(global_model_info, index=[epoch]),
+            ],
+            ignore_index=True,
+        )
+        global_model_record_df.to_csv(
+            "/workspace/outputs/csv/server_record.csv",
+            index=False,
+        )
 
         # print global training loss after every 'i' rounds
         if (epoch + 1) % print_every == 0:
