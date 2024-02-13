@@ -1,5 +1,9 @@
 # number of workers
 num_workers: 20
+# number of users: K
+num_users: 100
+# the fraction of clients: C
+frac: 0.1
 # number of faulty workers
 num_byzantines: 0
 # type of failures, bitflip or labelflip or chosen-labelflip
@@ -17,5 +21,7 @@ zeno_size: 4
 rho_ratio: 200
 # number of trimmed values
 num_trimmed_values: 8
-# iid 1 means the workers are training on IID data
+# iid: 1 means the workers are training on IID data (Set to 0 for non-IID)
 iid: 1
+# whether to use unequal data splits for non-i.i.d setting (use 0 for equal splits)
+unequal: 0

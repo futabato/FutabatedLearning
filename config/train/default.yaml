@@ -1,12 +1,44 @@
 # batch size of the workers
 batch_size: 100
+# local batch size: B
+local_bs: 10
 # learning rate
-lr: 0.1
+lr: 0.01
 # total number of epochs
 num_epochs: 100
+# number of rounds of training
+epochs: 3
+# the number of local epochs: E
+local_ep: 10
+# SGD momentum 
+momentum: 0.5
+# model name
+model: "mlp"
+# number of each kind of kernel
+kernel_num: 9
+# comma-separated kernel size to use for convolution
+kernel_size: "3,4,5"
+# number of channels of imgs
+num_channels: 1
+# batch_norm, layer_norm, or None
+norm: "batch_norm"
+# number of filters for conv nets -- 32 for mini-imagenet, 64 for omiglot.
+num_filters: 32
+# Whether use max pooling rather than strided convolutions
+max_pool: "True"
+# name of dataset
+dataset: "mnist"
+# number of classes
+num_classes: 10
+# type of optimizer
+optimizer: "sgd"
+# rounds of early stopping
+stopping_rounds: 10
 # index of GPU to be used
 gpu: 0
 # log interval
 interval: 1
 # random seed
 seed: 0
+# verbose
+verbose: 1

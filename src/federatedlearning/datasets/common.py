@@ -1,4 +1,3 @@
-from argparse import Namespace
 from typing import Any
 
 import torch
@@ -9,6 +8,7 @@ from federatedlearning.datasets.sampling import (
     mnist_noniid,
     mnist_noniid_unequal,
 )
+from omegaconf import DictConfig
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 
@@ -23,16 +23,18 @@ class DatasetSplit(Dataset):
 
     def __getitem__(self, item: Any) -> tuple[torch.Tensor, torch.Tensor]:
         image, label = self.dataset[self.idxs[item]]
-        return torch.tensor(image), torch.tensor(label)
+        return torch.tensor(image).clone().detach(), torch.tensor(
+            label
+        ).clone().detach()
 
 
-def get_dataset(args: Namespace) -> tuple[Any, Any, dict]:
+def get_dataset(cfg: DictConfig) -> tuple[Any, Any, dict]:
     """Returns train and test datasets and a user group which is a dict where
     the keys are the user index and the values are the corresponding data for
     each of those users.
     """
 
-    if args.dataset == "cifar":
+    if cfg.train.dataset == "cifar":
         data_dir: str = "/workspace/data/cifar/"
         apply_transform: transforms.Compose = transforms.Compose(
             [
@@ -50,20 +52,24 @@ def get_dataset(args: Namespace) -> tuple[Any, Any, dict]:
         )
 
         # sample training data amongst users
-        if args.iid:
+        if cfg.federatedlearning.iid:
             # Sample IID user data from Mnist
-            user_groups: dict = cifar_iid(train_dataset, args.num_users)
+            user_groups: dict = cifar_iid(
+                train_dataset, cfg.federatedlearning.num_users
+            )
         else:
             # Sample Non-IID user data from Mnist
-            if args.unequal:
+            if cfg.federatedlearning.unequal:
                 # Chose uneuqal splits for every user
                 raise NotImplementedError()
             else:
                 # Chose euqal splits for every user
-                user_groups = cifar_noniid(train_dataset, args.num_users)
+                user_groups = cifar_noniid(
+                    train_dataset, cfg.federatedlearning.num_users
+                )
 
-    elif args.dataset == "mnist" or "fmnist":
-        if args.dataset == "mnist":
+    elif cfg.train.dataset == "mnist" or "fmnist":
+        if cfg.train.dataset == "mnist":
             data_dir = "/workspace/data/mnist/"
         else:
             data_dir = "/workspace/data/fmnist/"
@@ -81,18 +87,22 @@ def get_dataset(args: Namespace) -> tuple[Any, Any, dict]:
         )
 
         # sample training data amongst users
-        if args.iid:
+        if cfg.federatedlearning.iid:
             # Sample IID user data from Mnist
-            user_groups = mnist_iid(train_dataset, args.num_users)
+            user_groups = mnist_iid(
+                train_dataset, cfg.federatedlearning.num_users
+            )
         else:
             # Sample Non-IID user data from Mnist
-            if args.unequal:
+            if cfg.federatedlearning.unequal:
                 # Chose uneuqal splits for every user
                 user_groups = mnist_noniid_unequal(
-                    train_dataset, args.num_users
+                    train_dataset, cfg.federatedlearning.num_users
                 )
             else:
                 # Chose euqal splits for every user
-                user_groups = mnist_noniid(train_dataset, args.num_users)
+                user_groups = mnist_noniid(
+                    train_dataset, cfg.federatedlearning.num_users
+                )
 
     return train_dataset, test_dataset, user_groups

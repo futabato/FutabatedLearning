@@ -1,20 +1,24 @@
-from argparse import Namespace
 from typing import Any, Union
 
 import torch
 import torch.nn as nn
+from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 
 
 def inference(
-    args: Namespace, model: Any, test_dataset: Any
+    cfg: DictConfig, model: Any, test_dataset: Any
 ) -> tuple[float, Union[float, Any]]:
     """Returns the test accuracy and loss."""
 
     model.eval()
     loss, total, correct = 0.0, 0.0, 0.0
 
-    device = "cuda" if args.gpu else "cpu"
+    device: torch.device = (
+        torch.device(f"cuda:{cfg.train.gpu}")
+        if cfg.train.gpu is not None and cfg.train.gpu >= 0
+        else torch.device("cpu")
+    )
     criterion = nn.NLLLoss().to(device)
     testloader = DataLoader(test_dataset, batch_size=128, shuffle=False)
 

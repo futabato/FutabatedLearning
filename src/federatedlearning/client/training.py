@@ -1,25 +1,29 @@
-from argparse import Namespace
 from typing import Any, Union
 
 import torch
 import torch.nn as nn
 from federatedlearning.datasets.common import DatasetSplit
+from omegaconf import DictConfig
 from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader
 
 
 class LocalUpdate(object):
     def __init__(
-        self, args: Namespace, dataset: Any, idxs: list, logger: SummaryWriter
+        self, cfg: DictConfig, dataset: Any, idxs: list, logger: SummaryWriter
     ) -> None:
-        self.args = args
+        self.cfg = cfg
         self.logger = logger
         (
             self.trainloader,
             self.validloader,
             self.testloader,
         ) = self.train_val_test(dataset, list(idxs))
-        self.device = "cuda" if args.gpu else "cpu"
+        self.device: torch.device = (
+            torch.device(f"cuda:{cfg.train.gpu}")
+            if cfg.train.gpu is not None and cfg.train.gpu >= 0
+            else torch.device("cpu")
+        )
         # Default criterion set to NLL loss function
         self.criterion = nn.NLLLoss().to(self.device)
 
@@ -35,7 +39,7 @@ class LocalUpdate(object):
 
         trainloader: Any = DataLoader(
             DatasetSplit(dataset, idxs_train),
-            batch_size=self.args.local_bs,
+            batch_size=self.cfg.train.local_bs,
             shuffle=True,
         )
         validloader: Any = DataLoader(
@@ -59,16 +63,16 @@ class LocalUpdate(object):
 
         # Set optimizer for the local updates
         optimizer: Any
-        if self.args.optimizer == "sgd":
+        if self.cfg.train.optimizer == "sgd":
             optimizer = torch.optim.SGD(
-                model.parameters(), lr=self.args.lr, momentum=0.5
+                model.parameters(), lr=self.cfg.train.lr, momentum=0.5
             )
-        elif self.args.optimizer == "adam":
+        elif self.cfg.train.optimizer == "adam":
             optimizer = torch.optim.Adam(
-                model.parameters(), lr=self.args.lr, weight_decay=1e-4
+                model.parameters(), lr=self.cfg.train.lr, weight_decay=1e-4
             )
 
-        for iter in range(self.args.local_ep):
+        for iter in range(self.cfg.train.local_ep):
             batch_loss: list = []
             for batch_idx, (images, labels) in enumerate(self.trainloader):
                 images, labels = images.to(self.device), labels.to(self.device)
@@ -79,7 +83,7 @@ class LocalUpdate(object):
                 loss.backward()
                 optimizer.step()
 
-                if self.args.verbose and (batch_idx % 10 == 0):
+                if self.cfg.train.verbose and (batch_idx % 10 == 0):
                     print(
                         "| Global Round : {} | Local Epoch : {} | [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(  # NOQA
                             global_round,
