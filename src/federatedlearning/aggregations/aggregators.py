@@ -1,5 +1,4 @@
 import copy
-from typing import Any
 
 import torch
 
@@ -273,11 +272,13 @@ import torch
 #             param.copy_(param.data - lr * mean_manipulated_param)
 
 
-def average_weights(w: list[Any]) -> Any:
+def average_weights(
+    w: list[dict[str, torch.Tensor]],
+) -> dict[str, torch.Tensor]:
     """FedAVG
     Returns the average of the weights.
     """
-    w_avg: Any = copy.deepcopy(w[0])
+    w_avg: dict[str, torch.Tensor] = copy.deepcopy(w[0])
     for key in w_avg.keys():
         for i in range(1, len(w)):
             w_avg[key] += w[i][key]

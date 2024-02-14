@@ -1,5 +1,4 @@
 import unittest
-from typing import Any
 
 import torch
 from federatedlearning.aggregations.aggregators import average_weights
@@ -18,7 +17,7 @@ class TestAverageWeights(unittest.TestCase):
             "a": torch.tensor(1.0),
             "b": torch.tensor(2.0),
         }
-        result: Any = average_weights(weight)
+        result: dict[str, torch.Tensor] = average_weights(weight)
         for key in expected_result.keys():
             self.assertTrue(
                 torch.equal(expected_result[key], result[key]),
@@ -35,7 +34,7 @@ class TestAverageWeights(unittest.TestCase):
             "a": torch.tensor([5.0, 6.0]),  # (1+5+9)/3, (2+6+10)/3
             "b": torch.tensor([7.0, 8.0]),  # (3+7+11)/3, (4+8+12)/3
         }
-        result: Any = average_weights(weights)
+        result: dict[str, torch.Tensor] = average_weights(weights)
         for key in expected_result.keys():
             self.assertTrue(
                 torch.allclose(expected_result[key], result[key]),

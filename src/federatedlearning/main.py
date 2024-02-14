@@ -87,7 +87,7 @@ def main(cfg: DictConfig) -> None:
         print(global_model)
 
         # copy weights
-        global_weights: dict[str, Any] = global_model.state_dict()
+        global_weights: dict[str, torch.Tensor] = global_model.state_dict()
 
         # Training
         train_loss: list[float] = []
@@ -95,7 +95,7 @@ def main(cfg: DictConfig) -> None:
         print_every: int = 2
 
         for epoch in tqdm(range(cfg.train.epochs)):
-            local_weights: list[float] = []
+            local_weights: list[dict[str, torch.Tensor]] = []
             local_losses: list[float] = []
             print(f"\n | Global Training Round : {epoch+1} |\n")
 
