@@ -7,7 +7,7 @@ from federatedlearning.aggregations.aggregators import average_weights
 class TestAverageWeights(unittest.TestCase):
     def test_average_of_empty_list(self) -> None:
         with self.assertRaises(IndexError):
-            average_weights([])  # 空のリストは IndexError を引き起こすべき
+            average_weights([])  # Empty list should raise an IndexError
 
     def test_average_with_single_weight(self) -> None:
         weight: list[dict[str, torch.Tensor]] = [
