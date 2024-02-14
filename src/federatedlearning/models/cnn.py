@@ -1,5 +1,4 @@
-from typing import Any
-
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from omegaconf import DictConfig
@@ -14,7 +13,7 @@ class CNNMnist(nn.Module):
         self.fc1 = nn.Linear(320, 50)
         self.fc2 = nn.Linear(50, cfg.train.num_classes)
 
-    def forward(self, x: Any) -> Any:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = F.relu(F.max_pool2d(self.conv1(x), 2))
         x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
         x = x.view(-1, x.shape[1] * x.shape[2] * x.shape[3])
@@ -41,8 +40,8 @@ class CNNFashion_Mnist(nn.Module):
         )
         self.fc = nn.Linear(7 * 7 * 32, 10)
 
-    def forward(self, x: Any) -> Any:
-        out = self.layer1(x)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out: torch.Tensor = self.layer1(x)
         out = self.layer2(out)
         out = out.view(out.size(0), -1)
         out = self.fc(out)
@@ -59,7 +58,7 @@ class CNNCifar(nn.Module):
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, cfg.train.num_classes)
 
-    def forward(self, x: Any) -> Any:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
         x = x.view(-1, 16 * 5 * 5)

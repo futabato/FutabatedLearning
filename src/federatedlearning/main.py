@@ -5,7 +5,6 @@ import copy
 import os
 import pickle
 import time
-from typing import Any
 
 import hydra
 import matplotlib
@@ -14,6 +13,7 @@ import mlflow
 import numpy as np
 import pandas as pd
 import torch
+import torch.nn as nn
 from nptyping import Int, NDArray, Shape
 from omegaconf import DictConfig
 from tensorboardX import SummaryWriter
@@ -75,7 +75,7 @@ def main(cfg: DictConfig) -> None:
         train_dataset, test_dataset, user_groups = get_dataset(cfg)
 
         # BUILD MODEL
-        global_model: Any
+        global_model: nn.Module
         if cfg.train.dataset == "mnist":
             global_model = CNNMnist(cfg=cfg)
         elif cfg.train.dataset == "cifar":

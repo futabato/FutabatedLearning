@@ -1,14 +1,12 @@
-from typing import Any, Union
-
 import torch
 import torch.nn as nn
 from omegaconf import DictConfig
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 
 def inference(
-    cfg: DictConfig, model: Any, test_dataset: Any
-) -> tuple[float, Union[float, Any]]:
+    cfg: DictConfig, model: nn.Module, test_dataset: Dataset
+) -> tuple[float, float]:
     """Returns the test accuracy and loss."""
 
     model.eval()

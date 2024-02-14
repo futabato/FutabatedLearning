@@ -1,5 +1,4 @@
-from typing import Any
-
+import torch
 import torch.nn as nn
 
 
@@ -32,7 +31,7 @@ class Net(nn.Module):
             nn.Linear(128, CLASSES),
         )
 
-    def forward(self, x: Any) -> Any:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.features(x)
         x = self.classifier(x)
         return x

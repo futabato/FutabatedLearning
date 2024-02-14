@@ -1,13 +1,12 @@
-from argparse import Namespace
-from typing import Any
-
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from omegaconf import DictConfig
 
 
 class AllConvNet(nn.Module):
     def __init__(
-        self, input_size: int, n_classes: int = 10, **kwargs: Namespace
+        self, input_size: int, n_classes: int = 10, **kwargs: DictConfig
     ) -> None:
         super(AllConvNet, self).__init__()
         self.conv1 = nn.Conv2d(input_size, 96, 3, padding=1)
@@ -21,7 +20,7 @@ class AllConvNet(nn.Module):
 
         self.class_conv = nn.Conv2d(192, n_classes, 1)
 
-    def forward(self, x: Any) -> Any:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x_drop = F.dropout(x, 0.2)
         conv1_out = F.relu(self.conv1(x_drop))
         conv2_out = F.relu(self.conv2(conv1_out))
