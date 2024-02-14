@@ -1,16 +1,14 @@
 import torch
 
 
-def no_byzantine(
-    gradients_list: list[torch.Tensor], _: int
-) -> list[torch.Tensor]:
+def no_byzantine(gradients: torch.Tensor, _: int) -> torch.Tensor:
     """no faulty workers
 
     Args:
-        gradients_list (list[torch.Tensor]): gradients tensor list
+        gradients (torch.Tensor): gradients tensor
         _ (int): number of byzantines
     """
-    return gradients_list
+    return gradients
 
 
 def gaussian_attack(
@@ -63,7 +61,7 @@ def labelflip_attack(label: torch.Tensor) -> torch.Tensor:
     Returns:
         torch.Tensor: flipped label tensor
     """
-    return 9 - label
+    return torch.Tensor(9 - label)
 
 
 def chosen_labelflip_attack(
