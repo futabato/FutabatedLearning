@@ -8,12 +8,11 @@ from attack.byzantines import (
 
 
 def test_no_byzantine() -> None:
-    tensor = torch.tensor([1.0, 2.0, 3.0], device="cpu")
-    expected = torch.tensor([1.0, 2.0, 3.0], device="cpu")
-    f = 0
+    tensor: torch.Tensor = torch.tensor([1.0, 2.0, 3.0], device="cpu")
+    expected: torch.Tensor = torch.tensor([1.0, 2.0, 3.0], device="cpu")
 
     # Byzantine Attack
-    actual = no_byzantine(tensor, f)
+    actual: torch.Tensor = no_byzantine(tensor)
 
     # Verify result
     assert actual.shape == expected.shape
@@ -21,11 +20,15 @@ def test_no_byzantine() -> None:
 
 
 def test_labelflip_attack() -> None:
-    tensor = torch.Tensor([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0], device="cpu")
-    expected = torch.Tensor([9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 9], device="cpu")
+    tensor: torch.Tensor = torch.Tensor(
+        [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 0.0], device="cpu"
+    )
+    expected: torch.Tensor = torch.Tensor(
+        [9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0, 9.0], device="cpu"
+    )
 
     # Byzantine Attack
-    actual = labelflip_attack(tensor)
+    actual: torch.Tensor = labelflip_attack(tensor)
 
     # Verify result
     assert actual.shape == expected.shape
@@ -33,83 +36,36 @@ def test_labelflip_attack() -> None:
 
 
 def test_bitflip_attack() -> None:
-    v = [
-        torch.tensor([1, 1, 0, 0]),
-        torch.tensor([1, 0, 1, 0]),
-        torch.tensor([1, 0, 0, 1]),
-        torch.tensor([0, 1, 1, 0]),
-        torch.tensor([0, 1, 0, 1]),
-        torch.tensor([0, 0, 1, 1]),
-    ]
-    expected = [
-        # num_byzantine = 0
+    tensor: torch.Tensor = torch.Tensor(
         [
-            torch.tensor([1, 1, 0, 0]),
-            torch.tensor([1, 0, 1, 0]),
-            torch.tensor([1, 0, 0, 1]),
-            torch.tensor([0, 1, 1, 0]),
-            torch.tensor([0, 1, 0, 1]),
-            torch.tensor([0, 0, 1, 1]),
+            [
+                [1.0, 1.0, 0.0, 0.0],
+                [1.0, 0.0, 1.0, 0.0],
+                [1.0, 0.0, 0.0, 1.0],
+                [0.2, 0.4, 0.6, 0.8],
+                [0.0, 0.5, 0.5, 0.0],
+                [0.1, 0.3, 0.5, 0.7],
+            ]
         ],
-        # num_byzantine = 1
+        device="cpu",
+    )
+    expected: torch.Tensor = torch.Tensor(
         [
-            torch.tensor([0, 0, 1, 1]),
-            torch.tensor([1, 0, 1, 0]),
-            torch.tensor([1, 0, 0, 1]),
-            torch.tensor([0, 1, 1, 0]),
-            torch.tensor([0, 1, 0, 1]),
-            torch.tensor([0, 0, 1, 1]),
+            [
+                [0.0, 0.0, 1.0, 1.0],
+                [0.0, 1.0, 0.0, 1.0],
+                [0.0, 1.0, 1.0, 0.0],
+                [0.8, 0.6, 0.4, 0.2],
+                [1.0, 0.5, 0.5, 1.0],
+                [0.9, 0.7, 0.5, 0.3],
+            ],
         ],
-        # num_byzantine = 2
-        [
-            torch.tensor([0, 0, 1, 1]),
-            torch.tensor([0, 1, 0, 1]),
-            torch.tensor([1, 0, 0, 1]),
-            torch.tensor([0, 1, 1, 0]),
-            torch.tensor([0, 1, 0, 1]),
-            torch.tensor([0, 0, 1, 1]),
-        ],
-        # num_byzantine = 3
-        [
-            torch.tensor([0, 0, 1, 1]),
-            torch.tensor([0, 1, 0, 1]),
-            torch.tensor([0, 1, 1, 0]),
-            torch.tensor([0, 1, 1, 0]),
-            torch.tensor([0, 1, 0, 1]),
-            torch.tensor([0, 0, 1, 1]),
-        ],
-        # num_byzantine = 4
-        [
-            torch.tensor([0, 0, 1, 1]),
-            torch.tensor([0, 1, 0, 1]),
-            torch.tensor([0, 1, 1, 0]),
-            torch.tensor([1, 0, 0, 1]),
-            torch.tensor([0, 1, 0, 1]),
-            torch.tensor([0, 0, 1, 1]),
-        ],
-        # num_byzantine = 5
-        [
-            torch.tensor([0, 0, 1, 1]),
-            torch.tensor([0, 1, 0, 1]),
-            torch.tensor([0, 1, 1, 0]),
-            torch.tensor([1, 0, 0, 1]),
-            torch.tensor([1, 0, 1, 0]),
-            torch.tensor([0, 0, 1, 1]),
-        ],
-        # num_byzantine = 6
-        [
-            torch.tensor([0, 0, 1, 1]),
-            torch.tensor([0, 1, 0, 1]),
-            torch.tensor([0, 1, 1, 0]),
-            torch.tensor([1, 0, 0, 1]),
-            torch.tensor([1, 0, 1, 0]),
-            torch.tensor([1, 1, 0, 0]),
-        ],
-    ]
-    for f in range(len(v) + 1):
-        actual = bitflip_attack(v, f)
-        assert len(actual) == len(expected[f])
-        assert torch.equal(actual[0], expected[f][0])
+        device="cpu",
+    )
+    actual: torch.Tensor = bitflip_attack(tensor)
+
+    assert len(actual) == len(expected)
+    torch.testing.assert_close(actual, expected)
 
 
 def test_chosen_labelflip_attack() -> None:
