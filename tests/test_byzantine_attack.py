@@ -62,13 +62,18 @@ def test_bitflip_attack() -> None:
         ],
         device="cpu",
     )
+    # Byzantine Attack
     actual: torch.Tensor = bitflip_attack(tensor)
 
+    # Verify result
     assert len(actual) == len(expected)
     torch.testing.assert_close(actual, expected)
 
 
 def test_chosen_labelflip_attack() -> None:
+    tensor: torch.Tensor
+    expected: torch.Tensor
+    actual: torch.Tensor
     for src_label in range(10):
         for dst_label in range(10):
             tensor = torch.Tensor(
