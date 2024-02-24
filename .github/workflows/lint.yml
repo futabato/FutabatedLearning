@@ -21,18 +21,16 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: "3.11"
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
       - name: Install Dependencies
-        run: poetry install --no-interaction --no-ansi
+        run:
+          python -m pip install --upgrade pip
+          pip install ruff==0.2.1 mypy==0.971 torch==2.0.1 numpy==1.25.2
       - name: Lint with ruff
         run: |
-          poetry run ruff check --output-format=github .
+          python -m ruff check --output-format=github .
       - name: Format with ruff
         run: |
-          poetry run ruff format . --check --diff
+          python -m ruff format . --check --diff
       - name: Lint with mypy
         run: |
-          poetry run mypy .
+          python -m mypy .
