@@ -15,13 +15,32 @@ from torchvision import datasets, transforms
 
 class DatasetSplit(Dataset):
     def __init__(self, dataset: Dataset, idxs: list) -> None:
+        """
+        Initialize a subset of a dataset at the provided indices.
+
+        Args:
+            dataset (Dataset): The original dataset.
+            idxs (list): A list of indices specifying which subset to take.
+        """
         self.dataset = dataset
-        self.idxs: list[int] = [int(i) for i in idxs]
+        self.idxs: list[int] = [
+            int(i) for i in idxs
+        ]  # Ensure indices are integers
 
     def __len__(self) -> int:
+        """Return the length of the subset."""
         return len(self.idxs)
 
     def __getitem__(self, item: Any) -> tuple[torch.Tensor, torch.Tensor]:
+        """
+        Retrieve an item and its label at the provided index from the subset.
+
+        Args:
+            item (Any): The index of the data item.
+
+        Returns:
+            A tuple where the first element is the data and the second is the label.
+        """
         image, label = self.dataset[self.idxs[item]]
         return torch.tensor(image).clone().detach(), torch.tensor(
             label
@@ -29,11 +48,20 @@ class DatasetSplit(Dataset):
 
 
 def get_dataset(cfg: DictConfig) -> tuple[Any, Any, dict]:
-    """Returns train and test datasets and a client group which is a dict where
-    the keys are the client index and the values are the corresponding data for
-    each of those clients.
+    """
+    Prepare the datasets and client groups based on the given configuration for federated learning.
+
+    Args:
+        cfg (DictConfig): Configuration object that includes settings for dataset selection and sampling.
+
+    Returns:
+        A tuple containing:
+            - train_dataset: Dataset object for training.
+            - test_dataset: Dataset object for testing.
+            - client_groups: A dictionary with client indices as keys and corresponding data indices as values.
     """
 
+    # Initialize transformations and datasets depending on the chosen dataset
     if cfg.train.dataset == "cifar":
         data_dir: str = "/workspace/data/cifar/"
         apply_transform: transforms.Compose = transforms.Compose(
@@ -43,66 +71,71 @@ def get_dataset(cfg: DictConfig) -> tuple[Any, Any, dict]:
             ]
         )
 
+        # Download and load CIFAR10 dataset
         train_dataset: Any = datasets.CIFAR10(
             data_dir, train=True, download=True, transform=apply_transform
         )
-
         test_dataset: Any = datasets.CIFAR10(
             data_dir, train=False, download=True, transform=apply_transform
         )
 
-        # sample training data amongst clients
+        # Sample training data amongst clients based on IID or Non-IID
         if cfg.federatedlearning.iid:
-            # Sample IID client data from Mnist
+            # For IID data distribution across clients
             client_groups: dict = cifar_iid(
                 train_dataset, cfg.federatedlearning.num_clients
             )
         else:
-            # Sample Non-IID client data from Mnist
+            # For Non-IID data distribution
             if cfg.federatedlearning.unequal:
-                # Chose uneuqal splits for every client
+                # If unequal partition requested, raise error (not implemented)
                 raise NotImplementedError()
             else:
-                # Chose euqal splits for every client
+                # For equal partitions amongst clients
                 client_groups = cifar_noniid(
                     train_dataset, cfg.federatedlearning.num_clients
                 )
 
-    elif cfg.train.dataset == "mnist" or "fmnist":
-        if cfg.train.dataset == "mnist":
-            data_dir = "/workspace/data/mnist/"
-        else:
-            data_dir = "/workspace/data/fmnist/"
+    elif cfg.train.dataset in ["mnist", "fmnist"]:
+        # Set the correct directory based on the dataset
+        data_dir = f"/workspace/data/{cfg.train.dataset}/"
 
+        # Define transformations for MNIST/Fashion-MNIST
         apply_transform = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         )
 
-        train_dataset = datasets.MNIST(
+        # Load MNIST or Fashion-MNIST dataset
+        if cfg.train.dataset == "mnist":
+            DatasetClass = datasets.MNIST
+        else:
+            DatasetClass = datasets.FashionMNIST
+
+        train_dataset = DatasetClass(
             data_dir, train=True, download=True, transform=apply_transform
         )
-
-        test_dataset = datasets.MNIST(
+        test_dataset = DatasetClass(
             data_dir, train=False, download=True, transform=apply_transform
         )
 
-        # sample training data amongst clients
+        # Sample training data amongst clients based on IID or Non-IID
         if cfg.federatedlearning.iid:
-            # Sample IID client data from Mnist
+            # For IID data distribution across clients
             client_groups = mnist_iid(
                 train_dataset, cfg.federatedlearning.num_clients
             )
         else:
-            # Sample Non-IID client data from Mnist
+            # For Non-IID data distribution
             if cfg.federatedlearning.unequal:
-                # Chose uneuqal splits for every client
+                # If unequal partition requested, use specific function
                 client_groups = mnist_noniid_unequal(
                     train_dataset, cfg.federatedlearning.num_clients
                 )
             else:
-                # Chose euqal splits for every client
+                # For equal partitions amongst clients
                 client_groups = mnist_noniid(
                     train_dataset, cfg.federatedlearning.num_clients
                 )
 
+    # Return the training dataset, testing dataset, and the dictionary of client groups
     return train_dataset, test_dataset, client_groups
