@@ -42,9 +42,7 @@ class DatasetSplit(Dataset):
             A tuple where the first element is the data and the second is the label.
         """
         image, label = self.dataset[self.idxs[item]]
-        return torch.tensor(image).clone().detach(), torch.tensor(
-            label
-        ).clone().detach()
+        return image, label
 
 
 def get_dataset(cfg: DictConfig) -> tuple[Any, Any, dict]:

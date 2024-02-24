@@ -63,7 +63,7 @@ def main(cfg: DictConfig) -> float:
 
         # Initialize DataFrame to track client update behaviors during training
         client_behavior_df: list[pd.DataFrame] = [
-            pd.DataFrame(columns=["epoch", "local_loss", "local_weight_path"])
+            pd.DataFrame(columns=["round", "local_loss", "local_weight_path"])
             for _ in range(cfg.federatedlearning.num_clients)
         ]
         # Create directories for each client
@@ -74,7 +74,7 @@ def main(cfg: DictConfig) -> float:
             )
         # Initialize DataFrame to record global model updates after aggregation
         global_model_record_df: pd.DataFrame = pd.DataFrame(
-            columns=["epoch", "global_weight_path"]
+            columns=["round", "global_weight_path"]
         )
         # Create necessary directories for server-side outputs
         os.makedirs("/workspace/outputs/weights/server", exist_ok=True)
@@ -105,14 +105,14 @@ def main(cfg: DictConfig) -> float:
         # Interval for printing aggregated training stats
         print_every: int = 2
 
-        # Begin federated training loop across specified number of epochs
-        for epoch in tqdm(range(cfg.train.epochs)):
+        # Begin federated training loop across specified number of rounds
+        for round in tqdm(range(cfg.train.rounds)):
             # Collect weights and losses from clients participating in this round
             local_weights: list[dict[str, torch.Tensor]] = []
             local_losses: list[float] = []
-            print(f"\n | Global Training Round : {epoch+1} |\n")
+            print(f"\n | Global Training Round : {round+1} |\n")
 
-            # Re-enter training mode at the start of each epoch
+            # Re-enter training mode at the start of each round
             global_model.train()
             # Randomly select clients to participate in this training round
             num_selected_clients: int = max(
@@ -140,7 +140,7 @@ def main(cfg: DictConfig) -> float:
                     logger=logger,
                 )
                 weight, loss = local_model.update_weights(
-                    model=copy.deepcopy(global_model), global_round=epoch
+                    model=copy.deepcopy(global_model), global_round=round
                 )
                 # Store the updated weights and reported loss
                 local_weights.append(copy.deepcopy(weight))
@@ -148,18 +148,18 @@ def main(cfg: DictConfig) -> float:
                 # Save local model weights and record training details
                 torch.save(
                     weight,
-                    f"/workspace/outputs/weights/client_{idx}/local_model_epoch_{epoch}.pth",
+                    f"/workspace/outputs/weights/client_{idx}/local_model_round_{round}.pth",
                 )
                 local_training_info: dict = {
-                    "epoch": epoch,
+                    "round": round,
                     "local_loss": copy.deepcopy(loss),
-                    "local_weight_path": f"/workspace/outputs/weights/client_{idx}/local_model_epoch_{epoch}.pth",
+                    "local_weight_path": f"/workspace/outputs/weights/client_{idx}/local_model_round_{round}.pth",
                 }
                 # Append recorded details to the client behavior DataFrame
                 client_behavior_df[idx] = pd.concat(
                     [
                         client_behavior_df[idx],
-                        pd.DataFrame(local_training_info, index=[epoch]),
+                        pd.DataFrame(local_training_info, index=[round]),
                     ],
                     ignore_index=True,
                 )
@@ -174,7 +174,7 @@ def main(cfg: DictConfig) -> float:
             # Save updated global model weights
             torch.save(
                 global_weights,
-                f"/workspace/outputs/weights/server/global_model_epoch_{epoch}.pth",
+                f"/workspace/outputs/weights/server/global_model_round_{round}.pth",
             )
             # Load the newly aggregated weights into the global model
             global_model.load_state_dict(global_weights)
@@ -182,7 +182,7 @@ def main(cfg: DictConfig) -> float:
             # Record and log the average training loss across all participating clients
             loss_avg: float = sum(local_losses) / len(local_losses)
             train_loss.append(loss_avg)
-            mlflow.log_metric("Train-Loss", loss_avg, step=epoch)
+            mlflow.log_metric("Train-Loss", loss_avg, step=round)
 
             # Evaluation phase: compute and log the average training accuracy across all clients
             list_acc: list[float] = []
@@ -200,18 +200,18 @@ def main(cfg: DictConfig) -> float:
                 list_loss.append(loss)
             train_accuracy.append(sum(list_acc) / len(list_acc))
             mlflow.log_metric(
-                "Train-Accuracy", sum(list_acc) / len(list_acc), step=epoch
+                "Train-Accuracy", sum(list_acc) / len(list_acc), step=round
             )
 
-            # Record details of the global model's state after the epoch
+            # Record details of the global model's state after the round
             global_model_info: dict = {
-                "epoch": epoch,
-                "global_weight_path": f"/workspace/outputs/weights/server/global_model_epoch_{epoch}.pth",
+                "round": round,
+                "global_weight_path": f"/workspace/outputs/weights/server/global_model_round_{round}.pth",
             }
             global_model_record_df = pd.concat(
                 [
                     global_model_record_df,
-                    pd.DataFrame(global_model_info, index=[epoch]),
+                    pd.DataFrame(global_model_info, index=[round]),
                 ],
                 ignore_index=True,
             )
@@ -222,8 +222,8 @@ def main(cfg: DictConfig) -> float:
             )
 
             # Occasionally print summary statistics of the training progress
-            if (epoch + 1) % print_every == 0:
-                print(f" \nAvg Training Stats after {epoch+1} global rounds:")
+            if (round + 1) % print_every == 0:
+                print(f" \nAvg Training Stats after {round+1} global rounds:")
                 print(f"Training Loss : {np.mean(np.array(train_loss))}")
                 print(
                     "Train Accuracy: {:.2f}% \n".format(
@@ -239,7 +239,7 @@ def main(cfg: DictConfig) -> float:
 
         # Print final training results
         print(
-            f" \n Results after {cfg.train.epochs} global rounds of training:"
+            f" \n Results after {cfg.train.rounds} global rounds of training:"
         )
         print(
             "|---- Avg Train Accuracy: {:.2f}%".format(
@@ -252,7 +252,7 @@ def main(cfg: DictConfig) -> float:
         file_name: str = "{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]".format(
             cfg.train.dataset,
             cfg.train.model,
-            cfg.train.epochs,
+            cfg.train.rounds,
             cfg.federatedlearning.frac,
             cfg.federatedlearning.iid,
             cfg.train.local_epochs,
