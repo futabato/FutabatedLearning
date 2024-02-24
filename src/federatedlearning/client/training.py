@@ -47,7 +47,7 @@ class LocalUpdate(object):
         # Initialize DataLoaders with batch sizes defined in config
         trainloader: DataLoader = DataLoader(
             DatasetSplit(dataset, idxs_train),
-            batch_size=self.cfg.train.local_bs,
+            batch_size=self.cfg.train.local_batch_size,
             shuffle=True,
         )
         validloader: DataLoader = DataLoader(
@@ -82,7 +82,7 @@ class LocalUpdate(object):
             )
 
         # Iterate over the local epochs
-        for iter in range(self.cfg.train.local_ep):
+        for iter in range(self.cfg.train.local_epochs):
             batch_loss: list[float] = []
             # Loop over the training data batches
             for batch_idx, (images, labels) in enumerate(self.trainloader):

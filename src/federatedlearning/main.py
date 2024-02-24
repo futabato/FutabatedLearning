@@ -255,8 +255,8 @@ def main(cfg: DictConfig) -> float:
             cfg.train.epochs,
             cfg.federatedlearning.frac,
             cfg.federatedlearning.iid,
-            cfg.train.local_ep,
-            cfg.train.local_bs,
+            cfg.train.local_epochs,
+            cfg.train.local_batch_size,
         )
 
         # Open a file to save the train_loss and train_accuracy lists using pickle

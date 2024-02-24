@@ -1,7 +1,7 @@
 # batch size of the workers
 batch_size: 100
 # local batch size: B
-local_bs: 10
+local_batch_size: 10
 # learning rate
 lr: 0.01
 # total number of epochs
@@ -9,7 +9,7 @@ num_epochs: 100
 # number of rounds of training
 epochs: 3
 # the number of local epochs: E
-local_ep: 10
+local_epochs: 10
 # SGD momentum 
 momentum: 0.5
 # model name
