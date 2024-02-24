@@ -24,7 +24,7 @@ def gaussian_attack(
     """
     # Define parameters for Gaussian noise
     mean: float = 0.0  # Mean of the Gaussian distribution
-    std: float = 0.1  # Standard deviation of the Gaussian distribution
+    std: float = 0.01  # Standard deviation of the Gaussian distribution
 
     # Create a new dictionary to store the perturbed weights
     noisy_weight: dict[str, torch.Tensor] = {}
