@@ -4,20 +4,7 @@ from attack.byzantines import (
     chosen_labelflip_attack,
     gaussian_attack,
     labelflip_attack,
-    no_byzantine,
 )
-
-
-def test_no_byzantine() -> None:
-    tensor: torch.Tensor = torch.tensor([1.0, 2.0, 3.0], device="cpu")
-    expected: torch.Tensor = torch.tensor([1.0, 2.0, 3.0], device="cpu")
-
-    # Byzantine Attack
-    actual: torch.Tensor = no_byzantine(tensor)
-
-    # Verify result
-    assert actual.shape == expected.shape
-    assert torch.equal(actual, expected)
 
 
 def test_labelflip_attack() -> None:
@@ -142,7 +129,6 @@ def test_chosen_labelflip_attack() -> None:
 
 
 if __name__ == "__main__":
-    test_no_byzantine()
     test_labelflip_attack()
     test_gaussian_attack()
     test_bitflip_attack()

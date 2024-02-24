@@ -1,15 +1,6 @@
 import torch
 
 
-def no_byzantine(weights: torch.Tensor) -> torch.Tensor:
-    """no faulty client
-
-    Args:
-        weights (torch.Tensor): weights tensor
-    """
-    return weights
-
-
 def gaussian_attack(
     weight: dict[str, torch.Tensor], device: torch.device
 ) -> dict[str, torch.Tensor]:
