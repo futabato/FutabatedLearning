@@ -273,14 +273,29 @@ import torch
 
 
 def average_weights(
-    w: list[dict[str, torch.Tensor]],
+    local_weights: list[dict[str, torch.Tensor]],
 ) -> dict[str, torch.Tensor]:
-    """FedAVG
-    Returns the average of the weights.
     """
-    w_avg: dict[str, torch.Tensor] = copy.deepcopy(w[0])
-    for key in w_avg.keys():
-        for i in range(1, len(w)):
-            w_avg[key] += w[i][key]
-        w_avg[key] = torch.div(w_avg[key], len(w))
-    return w_avg
+    Averages the weights from multiple state dictionaries (each representing model parameters).
+
+    Args:
+        local_weights (list of dict): A list where each element is a state dictionary of model weights.
+
+    Returns:
+        A dict of the same structure as the input but with averaged weights.
+    """
+    # Initialize the averaged weights with deep copied weights from the first model
+    weight_avg: dict[str, torch.Tensor] = copy.deepcopy(local_weights[0])
+
+    # Iterate over each key in the weight dictionary
+    for weight_key in weight_avg.keys():
+        # Sum the corresponding weights from all models starting from the second one
+        for weight_i in range(1, len(local_weights)):
+            weight_avg[weight_key] += local_weights[weight_i][weight_key]
+        # Divide the summed weights by the number of models to get the average
+        weight_avg[weight_key] = torch.div(
+            weight_avg[weight_key], len(local_weights)
+        )
+
+    # Return the averaged weights
+    return weight_avg
