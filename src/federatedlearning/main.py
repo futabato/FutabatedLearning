@@ -31,7 +31,7 @@ matplotlib.use("Agg")
 @hydra.main(
     version_base="1.1", config_path="/workspace/config", config_name="default"
 )
-def main(cfg: DictConfig) -> None:
+def main(cfg: DictConfig) -> float:
     start_time: float = time.time()
 
     # define paths
@@ -257,6 +257,7 @@ def main(cfg: DictConfig) -> None:
         mlflow.log_artifact(
             f"/workspace/outputs/objects/fed_{file_name}_acc.png"
         )
+        return test_acc
 
 
 if __name__ == "__main__":
