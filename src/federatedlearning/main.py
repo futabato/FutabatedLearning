@@ -139,9 +139,17 @@ def main(cfg: DictConfig) -> float:
                     idxs=client_groups[idx],
                     logger=logger,
                 )
-                weight, loss = local_model.update_weights(
-                    model=copy.deepcopy(global_model), global_round=round
-                )
+                # Check if the current index is within the number of byzantine clients specified in the configuration
+                if idx <= cfg.federatedlearning.num_byzantines:
+                    # Perform a byzantine attack on the local model by altering its weights and compute loss
+                    weight, loss = local_model.byzantine_attack(
+                        model=copy.deepcopy(global_model), global_round=round
+                    )
+                else:
+                    # Otherwise, perform a standard update of model weights based on local data and compute loss
+                    weight, loss = local_model.update_weights(
+                        model=copy.deepcopy(global_model), global_round=round
+                    )
                 # Store the updated weights and reported loss
                 local_weights.append(copy.deepcopy(weight))
                 local_losses.append(copy.deepcopy(loss))

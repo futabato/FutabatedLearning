@@ -1,5 +1,11 @@
 import torch
 import torch.nn as nn
+from attack.byzantines import (
+    bitflip_attack,
+    chosen_labelflip_attack,
+    gaussian_attack,
+    labelflip_attack,
+)
 from federatedlearning.datasets.common import DatasetSplit
 from omegaconf import DictConfig
 from tensorboardX import SummaryWriter
@@ -116,7 +122,94 @@ class LocalUpdate(object):
             epoch_loss.append(sum(batch_loss) / len(batch_loss))
 
         # Return the updated state dictionary of the model and the average loss for this round
-        return model.state_dict(), sum(epoch_loss) / len(epoch_loss)
+        weight: dict[str, torch.Tensor] = model.state_dict()
+        # Calculate the average loss from the collected epoch losses.
+        average_loss: float = sum(epoch_loss) / len(epoch_loss)
+
+        return weight, average_loss
+
+    def byzantine_attack(
+        self,
+        model: nn.Module,
+        global_round: int,
+    ) -> tuple[dict[str, torch.Tensor], float]:
+        # Set the model to training mode
+        model.train()
+        epoch_loss: list[float] = []
+
+        # Initialize an optimizer based on the selected configuration
+        optimizer: torch.optim.Optimizer
+        if self.cfg.train.optimizer == "sgd":
+            optimizer = torch.optim.SGD(
+                model.parameters(), lr=self.cfg.train.lr, momentum=0.5
+            )
+        elif self.cfg.train.optimizer == "adam":
+            optimizer = torch.optim.Adam(
+                model.parameters(), lr=self.cfg.train.lr, weight_decay=1e-4
+            )
+
+        # Iterate over the local epochs
+        for iter in range(self.cfg.train.local_epochs):
+            batch_loss: list[float] = []
+            # Loop over the training data batches
+            for batch_idx, (images, labels) in enumerate(self.trainloader):
+                # Move batch data to the computing device
+                images, labels = images.to(self.device), labels.to(self.device)
+
+                if self.cfg.federatedlearning.byzantine_type == "labelflip":
+                    # Apply label flipping attack to simulate a Byzantine failure.
+                    labels = labelflip_attack(labels)
+                elif (
+                    self.cfg.federatedlearning.byzantine_type
+                    == "chosen-labelflip"
+                ):
+                    # Apply chosen label flipping attack by changing labels from a source label
+                    # to a destination label as specified in the configuration.
+                    labels = chosen_labelflip_attack(
+                        labels,
+                        self.cfg.federatedlearning.choice_src_label,
+                        self.cfg.federatedlearning.choice_dst_label,
+                    )
+
+                # Reset gradients to zero
+                model.zero_grad()
+                # Forward pass
+                log_probs = model(images)
+                # Calculate loss
+                loss = self.criterion(log_probs, labels)
+                # Backward pass
+                loss.backward()
+                # Update weights
+                optimizer.step()
+
+                # Log the information if verbose mode is on
+                if self.cfg.train.verbose and (batch_idx % 10 == 0):
+                    print(
+                        f"| Global Round : {global_round} | Local Epoch : {iter} | "
+                        f"[{batch_idx * len(images)}/{len(self.trainloader.dataset)} "  # type: ignore
+                        f"({100.0 * batch_idx / len(self.trainloader):.0f}%)]\t"
+                        f"Loss: {loss.item():.6f}"
+                    )
+                # Add loss to the logger
+                self.logger.add_scalar("loss", loss.item())
+                # Add the current loss to the batch losses list
+                batch_loss.append(loss.item())
+            # Compute average loss for the epoch
+            epoch_loss.append(sum(batch_loss) / len(batch_loss))
+
+        # Return the updated state dictionary of the model and the average loss for this round
+        weight: dict[str, torch.Tensor] = model.state_dict()
+        if self.cfg.federatedlearning.byzantine_type == "bitflip":
+            # Apply bit-flipping attack to simulate a Byzantine failure on the model weights.
+            weight = bitflip_attack(weight)
+        elif self.cfg.federatedlearning.byzantine_type == "gaussian":
+            # Apply Gaussian attack by adding Gaussian noise to the model weights.
+            weight = gaussian_attack(weight, self.device)
+
+        # Calculate the average loss from the collected epoch losses.
+        average_loss: float = sum(epoch_loss) / len(epoch_loss)
+
+        return weight, average_loss
 
     # Evaluate the model on the test data
     def inference(self, model: nn.Module) -> tuple[float, float]:

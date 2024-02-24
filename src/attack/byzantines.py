@@ -10,37 +10,57 @@ def no_byzantine(weights: torch.Tensor) -> torch.Tensor:
     return weights
 
 
-def gaussian_attack(weights: torch.Tensor) -> torch.Tensor:
-    """failures that add Gaussian noise
+def gaussian_attack(
+    weight: dict[str, torch.Tensor], device: torch.device
+) -> dict[str, torch.Tensor]:
+    """
+    Introduce failures by adding Gaussian noise to the given weights.
 
     Args:
-        weights(torch.Tensor): weights tensor
+        weight (dict[str, torch.Tensor]): The original weights of a neural network model.
 
     Returns:
-        torch.Tensor: weights tensor added gaussian noise
+        dict[str, torch.Tensor]: New weights with Gaussian noise added.
     """
-    added_noise_weights: torch.Tensor = weights.clone()
-    added_noise_weights = (
-        torch.randn(  # Give a random number on a scale of 0 ~ 200
-            weights.size() * 200
-        )
-    )
-    return added_noise_weights
+    # Define parameters for Gaussian noise
+    mean: float = 0.0  # Mean of the Gaussian distribution
+    std: float = 0.1  # Standard deviation of the Gaussian distribution
+
+    # Create a new dictionary to store the perturbed weights
+    noisy_weight: dict[str, torch.Tensor] = {}
+
+    # Iterate over all weight tensors in the input dictionary
+    for name, tensor in weight.items():
+        # Generate Gaussian noise with the same shape as the weight tensor
+        noise = torch.randn(tensor.size(), device=device) * std + mean
+
+        # Add the Gaussian noise to the weights to introduce perturbation
+        noisy_weight[name] = tensor + noise
+
+    return noisy_weight
 
 
-def bitflip_attack(weights: torch.Tensor) -> torch.Tensor:
-    """bit-flipping failure
-    Assuming the sign of the floating point is inverted.
-    The implementation is to calculate 1-value.
+def bitflip_attack(
+    weight: dict[str, torch.Tensor],
+) -> dict[str, torch.Tensor]:
+    """
+    Simulate bit-flipping failure by inverting the sign of the floating point values.
+    This is roughly approximated by calculating 1-value for each weight.
 
     Args:
-        weights (torch.Tensor): weights tensor
+        weight (dict[str, torch.Tensor]): The original weights of a neural network model.
 
     Returns:
-        torch.Tensor: bit flipped weights tensor
+        dict[str, torch.Tensor]: Weights with bit flipped (sign inverted).
     """
-    flipped_weights: torch.Tensor = weights.clone()
-    flipped_weights.view(-1)[:] = 1 - flipped_weights.view(-1)[:]
+    # Create a new dictionary to store the bit-flipped weights
+    flipped_weights: dict[str, torch.Tensor] = {}
+
+    # Iterate over all weight tensors in the input dictionary
+    for name, tensor in weight.items():
+        # Invert the sign of the weight values by applying the transformation 1 - value
+        flipped_weights[name] = 1 - tensor
+
     return flipped_weights
 
 
