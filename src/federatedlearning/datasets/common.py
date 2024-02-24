@@ -29,9 +29,9 @@ class DatasetSplit(Dataset):
 
 
 def get_dataset(cfg: DictConfig) -> tuple[Any, Any, dict]:
-    """Returns train and test datasets and a user group which is a dict where
-    the keys are the user index and the values are the corresponding data for
-    each of those users.
+    """Returns train and test datasets and a client group which is a dict where
+    the keys are the client index and the values are the corresponding data for
+    each of those clients.
     """
 
     if cfg.train.dataset == "cifar":
@@ -51,21 +51,21 @@ def get_dataset(cfg: DictConfig) -> tuple[Any, Any, dict]:
             data_dir, train=False, download=True, transform=apply_transform
         )
 
-        # sample training data amongst users
+        # sample training data amongst clients
         if cfg.federatedlearning.iid:
-            # Sample IID user data from Mnist
-            user_groups: dict = cifar_iid(
-                train_dataset, cfg.federatedlearning.num_users
+            # Sample IID client data from Mnist
+            client_groups: dict = cifar_iid(
+                train_dataset, cfg.federatedlearning.num_clients
             )
         else:
-            # Sample Non-IID user data from Mnist
+            # Sample Non-IID client data from Mnist
             if cfg.federatedlearning.unequal:
-                # Chose uneuqal splits for every user
+                # Chose uneuqal splits for every client
                 raise NotImplementedError()
             else:
-                # Chose euqal splits for every user
-                user_groups = cifar_noniid(
-                    train_dataset, cfg.federatedlearning.num_users
+                # Chose euqal splits for every client
+                client_groups = cifar_noniid(
+                    train_dataset, cfg.federatedlearning.num_clients
                 )
 
     elif cfg.train.dataset == "mnist" or "fmnist":
@@ -86,23 +86,23 @@ def get_dataset(cfg: DictConfig) -> tuple[Any, Any, dict]:
             data_dir, train=False, download=True, transform=apply_transform
         )
 
-        # sample training data amongst users
+        # sample training data amongst clients
         if cfg.federatedlearning.iid:
-            # Sample IID user data from Mnist
-            user_groups = mnist_iid(
-                train_dataset, cfg.federatedlearning.num_users
+            # Sample IID client data from Mnist
+            client_groups = mnist_iid(
+                train_dataset, cfg.federatedlearning.num_clients
             )
         else:
-            # Sample Non-IID user data from Mnist
+            # Sample Non-IID client data from Mnist
             if cfg.federatedlearning.unequal:
-                # Chose uneuqal splits for every user
-                user_groups = mnist_noniid_unequal(
-                    train_dataset, cfg.federatedlearning.num_users
+                # Chose uneuqal splits for every client
+                client_groups = mnist_noniid_unequal(
+                    train_dataset, cfg.federatedlearning.num_clients
                 )
             else:
-                # Chose euqal splits for every user
-                user_groups = mnist_noniid(
-                    train_dataset, cfg.federatedlearning.num_users
+                # Chose euqal splits for every client
+                client_groups = mnist_noniid(
+                    train_dataset, cfg.federatedlearning.num_clients
                 )
 
-    return train_dataset, test_dataset, user_groups
+    return train_dataset, test_dataset, client_groups

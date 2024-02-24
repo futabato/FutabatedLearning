@@ -60,9 +60,11 @@ def main(cfg: DictConfig) -> float:
             pd.DataFrame(columns=["epoch", "local_loss", "local_weight_path"])
             for _ in range(cfg.federatedlearning.num_users)
         ]
-        for i in range(cfg.federatedlearning.num_users):
+        # Create directories for each client
+        # to store their model weights after local updates
+        for client_i in range(cfg.federatedlearning.num_clients):
             os.makedirs(
-                f"/workspace/outputs/weights/client_{i}", exist_ok=True
+                f"/workspace/outputs/weights/client_{client_i}", exist_ok=True
             )
         # Empty DataFrame for recoding global model
         global_model_record_df: pd.DataFrame = pd.DataFrame(
@@ -71,8 +73,8 @@ def main(cfg: DictConfig) -> float:
         os.makedirs("/workspace/outputs/weights/server", exist_ok=True)
         os.makedirs("/workspace/outputs/csv", exist_ok=True)
 
-        # load dataset and user groups
-        train_dataset, test_dataset, user_groups = get_dataset(cfg)
+        # Load the dataset and partition it according to the client groups
+        train_dataset, test_dataset, client_groups = get_dataset(cfg)
 
         # BUILD MODEL
         global_model: nn.Module
@@ -100,32 +102,40 @@ def main(cfg: DictConfig) -> float:
             print(f"\n | Global Training Round : {epoch+1} |\n")
 
             global_model.train()
-            m: int = max(
+            # Randomly select clients to participate in this training round
+            num_selected_clients: int = max(
                 int(
                     cfg.federatedlearning.frac
-                    * cfg.federatedlearning.num_users
+                    * cfg.federatedlearning.num_clients
                 ),
                 1,
             )
-            idxs_users: NDArray[Shape[f"1, {m}"], Int] = np.random.choice(
-                range(cfg.federatedlearning.num_users), m, replace=False
+            # TODO: prepare flag for client selection
+            idxs_clients: NDArray[
+                Shape[f"1, {num_selected_clients}"], Int
+            ] = np.random.choice(
+                range(cfg.federatedlearning.num_clients),
+                num_selected_clients,
+                replace=False,
             )
 
-            for idx in idxs_users:
+            # Loop over each selected client to perform local model updates
+            for idx in idxs_clients:
                 local_model = LocalUpdate(
                     cfg=cfg,
                     dataset=train_dataset,
-                    idxs=user_groups[idx],
+                    idxs=client_groups[idx],
                     logger=logger,
                 )
-                w, loss = local_model.update_weights(
+                weight, loss = local_model.update_weights(
                     model=copy.deepcopy(global_model), global_round=epoch
                 )
-                local_weights.append(copy.deepcopy(w))
+                # Store the updated weights and reported loss
+                local_weights.append(copy.deepcopy(weight))
                 local_losses.append(copy.deepcopy(loss))
                 # Preparation for storing local training information in the DataFrame for attestedFL
                 torch.save(
-                    w,
+                    weight,
                     f"/workspace/outputs/weights/client_{idx}/local_model_epoch_{epoch}.pth",
                 )
                 local_training_info: dict = {
@@ -162,12 +172,12 @@ def main(cfg: DictConfig) -> float:
             # Calculate avg training accuracy over all users at every epoch
             list_acc: list[float] = []
             list_loss: list[float] = []
-            global_model.eval()
-            for _ in range(cfg.federatedlearning.num_users):
+            global_model.eval()  # Set model to evaluation mode for inference
+            for _ in range(cfg.federatedlearning.num_clients):
                 local_model = LocalUpdate(
                     cfg=cfg,
                     dataset=train_dataset,
-                    idxs=user_groups[idx],
+                    idxs=client_groups[idx],
                     logger=logger,
                 )
                 acc, loss = local_model.inference(model=global_model)

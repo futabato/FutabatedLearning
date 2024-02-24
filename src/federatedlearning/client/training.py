@@ -34,7 +34,7 @@ class LocalUpdate(object):
     ) -> tuple[DataLoader, DataLoader, DataLoader]:
         """
         Returns train, validation and test dataloaders for a given dataset
-        and user indexes.
+        and client indexes.
         """
         # split indexes for train, validation, and test (80, 10, 10)
         idxs_train: list = idxs[: int(0.8 * len(idxs))]
