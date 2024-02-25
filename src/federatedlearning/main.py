@@ -106,7 +106,7 @@ def main(cfg: DictConfig) -> float:
         print_every: int = 2
 
         # Begin federated training loop across specified number of rounds
-        for round in tqdm(range(cfg.train.rounds)):
+        for round in tqdm(range(cfg.federatedlearning.rounds)):
             # Collect weights and losses from clients participating in this round
             local_weights: list[dict[str, torch.Tensor]] = []
             local_losses: list[float] = []
@@ -140,7 +140,10 @@ def main(cfg: DictConfig) -> float:
                     logger=logger,
                 )
                 # Check if the current index is within the number of byzantine clients specified in the configuration
-                if idx <= cfg.federatedlearning.num_byzantines:
+                if (
+                    idx <= cfg.federatedlearning.num_byzantines
+                    and cfg.federatedlearning.warmup_rounds <= round
+                ):
                     # Perform a byzantine attack on the local model by altering its weights and compute loss
                     weight, loss = local_model.byzantine_attack(
                         model=copy.deepcopy(global_model), global_round=round
@@ -247,7 +250,7 @@ def main(cfg: DictConfig) -> float:
 
         # Print final training results
         print(
-            f" \n Results after {cfg.train.rounds} global rounds of training:"
+            f" \n Results after {cfg.federatedlearning.rounds} global rounds of training:"
         )
         print(
             "|---- Avg Train Accuracy: {:.2f}%".format(
@@ -260,7 +263,7 @@ def main(cfg: DictConfig) -> float:
         file_name: str = "{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]".format(
             cfg.train.dataset,
             cfg.train.model,
-            cfg.train.rounds,
+            cfg.federatedlearning.rounds,
             cfg.federatedlearning.frac,
             cfg.federatedlearning.iid,
             cfg.train.local_epochs,

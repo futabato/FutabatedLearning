@@ -1,10 +1,14 @@
 # number of users: K
-num_users: 100
+num_clients: 20
 # the fraction of clients: C
 frac: 0.1
 # number of faulty workers
 num_byzantines: 0
-# type of failures, bitflip or labelflip or chosen-labelflip
+# number of rounds of training
+rounds: 20
+# number of warmup epochs
+warmup_rounds: 5
+# type of failures, bitflip or labelflip or chosen-labelflip or gaussian
 byzantine_type: "labelflip"
 # chosen-labelflip attack, label number of the source
 choice_src_label: 5
