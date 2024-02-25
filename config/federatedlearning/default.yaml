@@ -1,5 +1,3 @@
-# number of workers
-num_workers: 20
 # number of users: K
 num_users: 100
 # the fraction of clients: C

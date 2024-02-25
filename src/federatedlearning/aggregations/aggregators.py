@@ -251,8 +251,8 @@ import torch
 #     )
 
 #     # 最低スコアの num_trimmed_values 個の worker を無視する
-#     # つまり更新に採用するのは {num_workers - num_trimmed_values} 個 の worker になる
-#     # Use top {num_workers - num_trimmed_values} scoring workers
+#     # つまり更新に採用するのは {num_clientss - num_trimmed_values} 個 の worker になる
+#     # Use top {num_clientss - num_trimmed_values} scoring workers
 #     # only for final update
 #     selected_param_list: list[torch.Tensor] = [
 #         param_list[i] for i, _ in sorted_scores[:-num_trimmed_values]
