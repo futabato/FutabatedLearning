@@ -25,7 +25,7 @@ docker container run --gpus all --rm -it -p 5000:5000 -e PYTHONPATH=/workspace/s
 
 ## Run an experiment
 
-The baseline experiment with MNIST on MLP using GPU (if `gpu:0` is available)
+The baseline experiment with MNIST on CNN model using GPU (if `gpu:0` is available)
 
 ```
 python src/federatedlearning/main.py
