@@ -30,3 +30,26 @@ The baseline experiment with MNIST on CNN model using GPU (if `gpu:0` is availab
 ```
 python src/federatedlearning/main.py
 ```
+
+### Override configuration from the command line
+
+Example
+
+python src/federatedlearning/main.py \
+    mlflow.run_name=exp001 \
+    federatedlearning.num_byzantines=0 federatedlearning.num_clients=10
+
+### Parameter Search with Optuna
+
+Example
+
+```
+python src/federatedlearning/main.py \
+    --multirun 'federatedlearning.num_byzantines=range(8,13)'
+```
+
+## Visualize, Search, Compare experiments
+
+```
+mlflow ui
+```
