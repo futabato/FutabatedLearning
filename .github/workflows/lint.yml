@@ -25,7 +25,7 @@ jobs:
         run:
           curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
           echo "$HOME/.poetry/bin" >> $GITHUB_PATH
-          poetry add "ruff==0.2.1" "mypy==0.971" "torch==2.0.1" "numpy==1.25.2"
+          poetry add ruff@^0.2.1 mypy@^0.971 torch@^2.0.1 numpy@^1.25.2
       - name: Lint with ruff
         run: |
           poetry run ruff check . --fix --output-format=github .
