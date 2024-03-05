@@ -55,6 +55,7 @@ exclude = [
     "__pycache__",
     ".git",
 ]
+extend-include = ["*.ipynb"]
 line-length = 79
 indent-width = 4
 
