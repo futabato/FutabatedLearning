@@ -141,7 +141,7 @@ def main(cfg: DictConfig) -> float:
                 )
                 # Check if the current index is within the number of byzantine clients specified in the configuration
                 if (
-                    client_i <= cfg.federatedlearning.num_byzantines
+                    client_i < cfg.federatedlearning.num_byzantines
                     and cfg.federatedlearning.warmup_rounds <= round
                 ):
                     # Perform a byzantine attack on the local model by altering its weights and compute loss
