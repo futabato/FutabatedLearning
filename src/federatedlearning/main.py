@@ -79,6 +79,7 @@ def main(cfg: DictConfig) -> float:
         # Create necessary directories for server-side outputs
         os.makedirs("/workspace/outputs/weights/server", exist_ok=True)
         os.makedirs("/workspace/outputs/csv", exist_ok=True)
+        os.makedirs("/workspace/outputs/objects", exist_ok=True)
 
         # Load the dataset and partition it according to the client groups
         train_dataset, test_dataset, client_groups = get_dataset(cfg)
