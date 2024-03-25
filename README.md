@@ -35,9 +35,11 @@ python src/federatedlearning/main.py
 
 Example
 
+```
 python src/federatedlearning/main.py \
     mlflow.run_name=exp001 \
     federatedlearning.num_byzantines=0 federatedlearning.num_clients=10
+```
 
 ### Parameter Search with Optuna
 
