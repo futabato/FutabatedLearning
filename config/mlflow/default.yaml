@@ -1,2 +1,2 @@
 experiment_name: "FutabatedLearning"
-run_name: "default"
+run_name: "time-series-monitoring (warmup 10 rounds)"

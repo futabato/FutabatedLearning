@@ -3,11 +3,9 @@ local_batch_size: 10
 # learning rate
 lr: 0.01
 # the number of local epochs: E
-local_epochs: 2
+local_epochs: 3
 # SGD momentum 
 momentum: 0.5
-# model name
-model: "mlp"
 # number of each kind of kernel
 kernel_num: 9
 # comma-separated kernel size to use for convolution

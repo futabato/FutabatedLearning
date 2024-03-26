@@ -3,7 +3,7 @@ num_clients: 20
 # the fraction of clients: C
 frac: 1
 # number of faulty workers
-num_byzantines: 8
+num_byzantines: 12
 # number of rounds of training
 rounds: 30
 # number of warmup epochs
