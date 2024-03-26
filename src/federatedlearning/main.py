@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import copy
+import math
 import os
 import pickle
 import time
@@ -23,6 +24,7 @@ from federatedlearning.aggregations.aggregators import average_weights
 from federatedlearning.client.training import LocalUpdate
 from federatedlearning.datasets.common import get_dataset
 from federatedlearning.models.cnn import CNNCifar, CNNMnist
+from federatedlearning.reputation.monitoring import monitore_time_series
 from federatedlearning.server.inferencing import inference
 
 # Set matplotlib backend to 'Agg'
@@ -106,6 +108,13 @@ def main(cfg: DictConfig) -> float:
         # Interval for printing aggregated training stats
         print_every: int = 2
 
+        # Initialize lists to store euclidean distances for a each client across all rounds.
+        euclidean_distance_list: list[list[float]] = [
+            [math.inf] * cfg.federatedlearning.rounds
+        ] * cfg.federatedlearning.num_clients
+        # Initialize an empty set to store Byzantine clients
+        byzantine_clients: set[int] = set()
+
         # Begin federated training loop across specified number of rounds
         for round in tqdm(range(cfg.federatedlearning.rounds)):
             # Collect weights and losses from clients participating in this round
@@ -133,6 +142,8 @@ def main(cfg: DictConfig) -> float:
 
             # Loop over each selected client to perform local model updates
             for client_i in selected_clients_idx:
+                if client_i in byzantine_clients:
+                    continue
                 local_model = LocalUpdate(
                     cfg=cfg,
                     dataset=train_dataset,
@@ -179,6 +190,21 @@ def main(cfg: DictConfig) -> float:
                     f"/workspace/outputs/csv/client_{client_i}_behavior.csv",
                     index=False,
                 )
+                # Time-Series Monitoring
+                is_reliable, euclidean_distance_list = monitore_time_series(
+                    client_id=client_i,
+                    round=round,
+                    client_behavior_df=client_behavior_df,
+                    euclidean_distance_list=euclidean_distance_list,
+                    cfg=cfg,
+                )
+                # Check if the client is marked as unreliable (Byzantine client)
+                if not is_reliable:
+                    # Remove the local weights and losses of the unreliable client
+                    local_weights.pop()
+                    local_losses.pop()
+                    # Add the client ID to the set of Byzantine clients
+                    byzantine_clients.add(client_i)
 
             # Aggregate local weights to form new global model weights (FedAVG)
             global_weights = average_weights(local_weights)
