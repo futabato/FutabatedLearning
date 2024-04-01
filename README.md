@@ -1,6 +1,6 @@
 # FutabatedLearning
 
-This is a federated learning framework for research (not practical).
+This is a Federated Learning Framework for security researcher (not practical).
 
 This implementation was developed by forking from [Federated-Learning (PyTorch)](https://github.com/AshwinRJ/Federated-Learning-PyTorch), a vanilla implementation of the paper "[Communication-Efficient Learning of Deep Networks from Decentralized Data](https://arxiv.org/abs/1602.05629)".
 
