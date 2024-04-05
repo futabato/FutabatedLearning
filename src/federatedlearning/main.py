@@ -70,9 +70,9 @@ def main(cfg: DictConfig) -> float:
         ]
         # Create directories for each client
         # to store their model weights after local updates
-        for client_i in range(cfg.federatedlearning.num_clients):
+        for client_id in range(cfg.federatedlearning.num_clients):
             os.makedirs(
-                f"/workspace/outputs/weights/client_{client_i}", exist_ok=True
+                f"/workspace/outputs/weights/client_{client_id}", exist_ok=True
             )
         # Initialize DataFrame to record global model updates after aggregation
         global_model_record_df: pd.DataFrame = pd.DataFrame(
@@ -141,18 +141,18 @@ def main(cfg: DictConfig) -> float:
             )
 
             # Loop over each selected client to perform local model updates
-            for client_i in selected_clients_idx:
-                if client_i in byzantine_clients:
+            for client_id in selected_clients_idx:
+                if client_id in byzantine_clients:
                     continue
                 local_model = LocalUpdate(
                     cfg=cfg,
                     dataset=train_dataset,
-                    idxs=client_groups[client_i],
+                    idxs=client_groups[client_id],
                     logger=logger,
                 )
                 # Check if the current index is within the number of byzantine clients specified in the configuration
                 if (
-                    client_i < cfg.federatedlearning.num_byzantines
+                    client_id < cfg.federatedlearning.num_byzantines
                     and cfg.federatedlearning.warmup_rounds <= round
                 ):
                     # Perform a byzantine attack on the local model by altering its weights and compute loss
@@ -170,41 +170,43 @@ def main(cfg: DictConfig) -> float:
                 # Save local model weights and record training details
                 torch.save(
                     weight,
-                    f"/workspace/outputs/weights/client_{client_i}/local_model_round_{round}.pth",
+                    f"/workspace/outputs/weights/client_{client_id}/local_model_round_{round}.pth",
                 )
                 local_training_info: dict = {
                     "round": round,
                     "local_loss": copy.deepcopy(loss),
-                    "local_weight_path": f"/workspace/outputs/weights/client_{client_i}/local_model_round_{round}.pth",
+                    "local_weight_path": f"/workspace/outputs/weights/client_{client_id}/local_model_round_{round}.pth",
                 }
                 # Append recorded details to the client behavior DataFrame
-                client_behavior_df[client_i] = pd.concat(
+                client_behavior_df[client_id] = pd.concat(
                     [
-                        client_behavior_df[client_i],
+                        client_behavior_df[client_id],
                         pd.DataFrame(local_training_info, index=[round]),
                     ],
                     ignore_index=True,
                 )
                 # Export client behavior data to CSV for analysis or audit
-                client_behavior_df[client_i].to_csv(
-                    f"/workspace/outputs/csv/client_{client_i}_behavior.csv",
+                client_behavior_df[client_id].to_csv(
+                    f"/workspace/outputs/csv/client_{client_id}_behavior.csv",
                     index=False,
                 )
                 # Time-Series Monitoring
                 is_reliable, euclidean_distance_list = monitore_time_series(
-                    client_id=client_i,
+                    client_id=client_id,
                     round=round,
                     client_behavior_df=client_behavior_df,
                     euclidean_distance_list=euclidean_distance_list,
                     cfg=cfg,
                 )
                 # Check if the client is marked as unreliable (Byzantine client)
-                if not is_reliable:
+                if (cfg.federatedlearning.enable_time_series_monitoring) and (
+                    not is_reliable
+                ):
                     # Remove the local weights and losses of the unreliable client
                     local_weights.pop()
                     local_losses.pop()
                     # Add the client ID to the set of Byzantine clients
-                    byzantine_clients.add(client_i)
+                    byzantine_clients.add(client_id)
 
             # Aggregate local weights to form new global model weights (FedAVG)
             global_weights = average_weights(local_weights)
@@ -229,7 +231,7 @@ def main(cfg: DictConfig) -> float:
                 local_model = LocalUpdate(
                     cfg=cfg,
                     dataset=train_dataset,
-                    idxs=client_groups[client_i],
+                    idxs=client_groups[client_id],
                     logger=logger,
                 )
                 acc, loss = local_model.inference(model=global_model)
