@@ -10,6 +10,10 @@ rounds: 30
 warmup_rounds: 10
 # type of failures, bitflip or labelflip or chosen-labelflip or gaussian
 byzantine_type: "labelflip"
+# whether enable time-series-monitoring
+enable_time_series_monitoring: false
+# whether enable time-series-monitoring
+enable_cross_sectional_monitoring: false
 # chosen-labelflip attack, label number of the source
 choice_src_label: 5
 # chosen-labelflip attack, label number of the destination
