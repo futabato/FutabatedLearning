@@ -110,8 +110,14 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
         euclidean_distance_list: list[list[float]] = [
             [math.inf] * cfg.federatedlearning.rounds
         ] * cfg.federatedlearning.num_clients
+        cluster_distance_list: list[float] = [
+            math.inf
+        ] * cfg.federatedlearning.rounds
+        finish_cross_sectional: bool = False
         # Initialize an empty set to store Byzantine clients
         byzantine_clients: set[int] = set()
+        # Initialize save path
+        save_path: str
 
         # Begin federated training loop across specified number of rounds
         for round in tqdm(range(cfg.federatedlearning.rounds)):
@@ -166,10 +172,9 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
                 local_weights.append(copy.deepcopy(weight))
                 local_losses.append(copy.deepcopy(loss))
                 # Save local model weights and record training details
-                torch.save(
-                    weight,
-                    f"/workspace/outputs/weights/client_{client_id}/local_model_round_{round}.pth",
-                )
+                save_path = f"/workspace/outputs/weights/client_{client_id}/local_model_round_{round}.pth"
+                torch.save(weight, save_path)
+                mlflow.log_artifact(save_path)
                 local_training_info: dict = {
                     "round": round,
                     "local_loss": copy.deepcopy(loss),
@@ -189,30 +194,71 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
                     index=False,
                 )
                 # Time-Series Monitoring
-                is_reliable, euclidean_distance_list = monitore_time_series(
-                    client_id=client_id,
-                    round=round,
-                    client_behavior_df=client_behavior_df,
-                    euclidean_distance_list=euclidean_distance_list,
-                    cfg=cfg,
+                if cfg.federatedlearning.enable_time_series_monitoring:
+                    (
+                        is_reliable,
+                        euclidean_distance_list,
+                    ) = monitore_time_series(
+                        client_id=client_id,
+                        round=round,
+                        client_behavior_df=client_behavior_df,
+                        euclidean_distance_list=euclidean_distance_list,
+                        cfg=cfg,
+                    )
+                    # Check if the client is marked as unreliable (Byzantine client)
+                    if not is_reliable:
+                        # Remove the local weights and losses of the unreliable client
+                        local_weights.pop()
+                        local_losses.pop()
+                        # Add the client ID to the set of Byzantine clients
+                        byzantine_clients.add(client_id)
+
+            # TODO: Cross-sectional Monitoring
+            if (
+                cfg.federatedlearning.enable_cross_sectional_monitoring
+                and not finish_cross_sectional
+            ):
+                (
+                    is_reliable_list,
+                    cluster_distance_list,
+                ) = monitor_cross_sectional(
+                    round,
+                    num_selected_clients,
+                    client_behavior_df,
+                    cfg,
+                    cluster_distance_list,
                 )
-                # Check if the client is marked as unreliable (Byzantine client)
-                if (cfg.federatedlearning.enable_time_series_monitoring) and (
-                    not is_reliable
-                ):
-                    # Remove the local weights and losses of the unreliable client
-                    local_weights.pop()
-                    local_losses.pop()
-                    # Add the client ID to the set of Byzantine clients
-                    byzantine_clients.add(client_id)
+                exclude_clients: list[int] = []
+                for i in range(len(selected_clients_idx)):
+                    if not is_reliable_list[i]:
+                        exclude_clients.append(selected_clients_idx[i])
+                # for a, is_reliable in zip(selected_clients_idx, is_reliable_list):
+                # for i, is_reliable in enumerate(
+                #     sorted(is_reliable_list, reverse=True)
+                # ):
+                #     if not is_reliable:
+                #         # Remove the local weights and losses of the unreliable client
+                #         local_weights.pop(i)
+                #         local_losses.pop(i)
+                #         # Add the client ID to the set of Byzantine clients
+                #         byzantine_clients.add(selected_clients_idx[i])
+                #         # cross-sectionalは一度きり
+                #         finish_cross_sectional = True
+                for i in sorted(exclude_clients, reverse=True):
+                    local_weights.pop(i)
+                    local_losses.pop(i)
+                    byzantine_clients.add(selected_clients_idx[i])
+                finish_cross_sectional = True
+
+            # TODO: if cfg.federatedlearning.num_byzantines / num_selected_clients > 0.5 and cfg.federatedlearning.warmup_rounds == 0
+            # のときどうにかする
 
             # Aggregate local weights to form new global model weights (FedAVG)
             global_weights = average_weights(local_weights)
             # Save updated global model weights
-            torch.save(
-                global_weights,
-                f"/workspace/outputs/weights/server/global_model_round_{round}.pth",
-            )
+            save_path = f"/workspace/outputs/weights/server/global_model_round_{round}.pth"
+            torch.save(global_weights, save_path)
+            mlflow.log_artifact(save_path)
             # Load the newly aggregated weights into the global model
             global_model.load_state_dict(global_weights)
 
@@ -297,35 +343,35 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
         )
 
         # Open a file to save the train_loss and train_accuracy lists using pickle
-        with open(f"/workspace/outputs/objects/{file_name}.pkl", "wb") as f:
+        save_path = f"/workspace/outputs/objects/{file_name}.pkl"
+        with open(save_path, "wb") as f:
             pickle.dump([train_loss, train_accuracy], f)
         # Log the file containing training data as an artifact in MLFlow
-        mlflow.log_artifact(f"/workspace/outputs/objects/{file_name}.pkl")
+        mlflow.log_artifact(save_path)
 
         # Output total training time
         print("\n Total Run Time: {0:0.4f}".format(time.time() - start_time))
 
         # Plot and save the Training Loss vs Communication rounds
+        save_path = f"/workspace/outputs/objects/fed_{file_name}_loss.png"
         plt.figure()
         plt.title("Training Loss vs Communication rounds")
         plt.plot(range(len(train_loss)), train_loss, color="r")
         plt.ylabel("Training loss")
         plt.xlabel("Communication Rounds")
-        plt.savefig(f"/workspace/outputs/objects/fed_{file_name}_loss.png")
-        mlflow.log_artifact(
-            f"/workspace/outputs/objects/fed_{file_name}_loss.png"
-        )
+        plt.savefig(save_path)
+        mlflow.log_artifact(save_path)
 
         # Plot and save the Average Accuracy vs Communication rounds
+        save_path = f"/workspace/outputs/objects/fed_{file_name}_acc.png"
         plt.figure()
         plt.title("Average Accuracy vs Communication rounds")
         plt.plot(range(len(train_accuracy)), train_accuracy, color="k")
         plt.ylabel("Average Accuracy")
         plt.xlabel("Communication Rounds")
-        plt.savefig(f"/workspace/outputs/objects/fed_{file_name}_acc.png")
-        mlflow.log_artifact(
-            f"/workspace/outputs/objects/fed_{file_name}_acc.png"
-        )
+        plt.savefig(save_path)
+        mlflow.log_artifact(save_path)
+
         return test_acc
 
 
