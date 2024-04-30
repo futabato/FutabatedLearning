@@ -17,7 +17,6 @@ import torch
 import torch.nn as nn
 from nptyping import Int, NDArray, Shape
 from omegaconf import DictConfig
-from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
 from federatedlearning.aggregations.aggregators import average_weights
@@ -35,12 +34,11 @@ matplotlib.use("Agg")
 @hydra.main(
     version_base="1.1", config_path="/workspace/config", config_name="default"
 )
-def main(cfg: DictConfig) -> float:
+def main(cfg: DictConfig) -> float:  # noqa: C901
     # Record the start time for run duration
     start_time: float = time.time()
 
     # Setup paths and logging utilities
-    logger: SummaryWriter = SummaryWriter("/workspace/logs")
     mlflow.set_tracking_uri(
         "file://" + hydra.utils.get_original_cwd() + "/mlruns"
     )
@@ -147,8 +145,8 @@ def main(cfg: DictConfig) -> float:
                 local_model = LocalUpdate(
                     cfg=cfg,
                     dataset=train_dataset,
+                    client_id=client_id,
                     idxs=client_groups[client_id],
-                    logger=logger,
                 )
                 # Check if the current index is within the number of byzantine clients specified in the configuration
                 if (
@@ -231,8 +229,8 @@ def main(cfg: DictConfig) -> float:
                 local_model = LocalUpdate(
                     cfg=cfg,
                     dataset=train_dataset,
+                    client_id=client_id,
                     idxs=client_groups[client_id],
-                    logger=logger,
                 )
                 acc, loss = local_model.inference(model=global_model)
                 list_acc.append(acc)

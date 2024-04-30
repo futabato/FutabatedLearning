@@ -1,3 +1,4 @@
+import mlflow
 import torch
 import torch.nn as nn
 from attack.byzantines import (
@@ -8,7 +9,6 @@ from attack.byzantines import (
 )
 from federatedlearning.datasets.common import DatasetSplit
 from omegaconf import DictConfig
-from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader, Dataset
 
 
@@ -17,11 +17,11 @@ class LocalUpdate(object):
         self,
         cfg: DictConfig,
         dataset: Dataset,
+        client_id: int,
         idxs: list,
-        logger: SummaryWriter,
     ) -> None:
         self.cfg = cfg
-        self.logger = logger
+        self.client_id = client_id
         # Create data loaders for training, validation, and testing
         (
             self.trainloader,
@@ -88,10 +88,10 @@ class LocalUpdate(object):
             )
 
         # Iterate over the local epochs
-        for iter in range(self.cfg.train.local_epochs):
+        for _ in range(self.cfg.train.local_epochs):
             batch_loss: list[float] = []
             # Loop over the training data batches
-            for batch_idx, (images, labels) in enumerate(self.trainloader):
+            for _, (images, labels) in enumerate(self.trainloader):
                 # Move batch data to the computing device
                 images, labels = images.to(self.device), labels.to(self.device)
 
@@ -107,15 +107,19 @@ class LocalUpdate(object):
                 optimizer.step()
 
                 # Log the information if verbose mode is on
-                if self.cfg.train.verbose and (batch_idx % 10 == 0):
-                    print(
-                        f"| Global Round : {global_round} | Local Epoch : {iter} | "
-                        f"[{batch_idx * len(images)}/{len(self.trainloader.dataset)} "  # type: ignore
-                        f"({100.0 * batch_idx / len(self.trainloader):.0f}%)]\t"
-                        f"Loss: {loss.item():.6f}"
-                    )
+                # if self.cfg.train.verbose and (batch_idx % 10 == 0):
+                #     print(
+                #         f"| Global Round : {global_round} | Local Epoch : {iter} | "
+                #         f"[{batch_idx * len(images)}/{len(self.trainloader.dataset)} "  # type: ignore
+                #         f"({100.0 * batch_idx / len(self.trainloader):.0f}%)]\t"
+                #         f"Loss: {loss.item():.6f}"
+                #     )
                 # Add loss to the logger
-                self.logger.add_scalar("loss", loss.item())
+                mlflow.log_metric(
+                    f"loss-client{self.client_id}",
+                    loss.item(),
+                    step=global_round,
+                )
                 # Add the current loss to the batch losses list
                 batch_loss.append(loss.item())
             # Compute average loss for the epoch
@@ -149,10 +153,10 @@ class LocalUpdate(object):
             )
 
         # Iterate over the local epochs
-        for iter in range(self.cfg.train.local_epochs):
+        for _ in range(self.cfg.train.local_epochs):
             batch_loss: list[float] = []
             # Loop over the training data batches
-            for batch_idx, (images, labels) in enumerate(self.trainloader):
+            for _, (images, labels) in enumerate(self.trainloader):
                 # Move batch data to the computing device
                 images, labels = images.to(self.device), labels.to(self.device)
 
@@ -183,15 +187,19 @@ class LocalUpdate(object):
                 optimizer.step()
 
                 # Log the information if verbose mode is on
-                if self.cfg.train.verbose and (batch_idx % 10 == 0):
-                    print(
-                        f"| Global Round : {global_round} | Local Epoch : {iter} | "
-                        f"[{batch_idx * len(images)}/{len(self.trainloader.dataset)} "  # type: ignore
-                        f"({100.0 * batch_idx / len(self.trainloader):.0f}%)]\t"
-                        f"Loss: {loss.item():.6f}"
-                    )
+                # if self.cfg.train.verbose and (batch_idx % 10 == 0):
+                #     print(
+                #         f"| Global Round : {global_round} | Local Epoch : {iter} | "
+                #         f"[{batch_idx * len(images)}/{len(self.trainloader.dataset)} "  # type: ignore
+                #         f"({100.0 * batch_idx / len(self.trainloader):.0f}%)]\t"
+                #         f"Loss: {loss.item():.6f}"
+                #     )
                 # Add loss to the logger
-                self.logger.add_scalar("loss", loss.item())
+                mlflow.log_metric(
+                    f"loss-client{self.client_id}",
+                    loss.item(),
+                    step=global_round,
+                )
                 # Add the current loss to the batch losses list
                 batch_loss.append(loss.item())
             # Compute average loss for the epoch
