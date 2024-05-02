@@ -1,13 +1,13 @@
 # number of users: K
-num_clients: 20
+num_clients: 100
 # the fraction of clients: C
-frac: 1
+frac: 0.1
 # number of faulty workers
-num_byzantines: 12
+num_byzantines: 60
 # number of rounds of training
-rounds: 30
+rounds: 10
 # number of warmup epochs
-warmup_rounds: 10
+warmup_rounds: 0
 # type of failures, bitflip or labelflip or chosen-labelflip or gaussian
 byzantine_type: "labelflip"
 # whether enable time-series-monitoring

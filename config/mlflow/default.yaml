@@ -1,2 +1,2 @@
 experiment_name: "FutabatedLearning"
-run_name: "time-series-monitoring (warmup 10 rounds)"
+run_name: "label-flip (byzantine 60%)"

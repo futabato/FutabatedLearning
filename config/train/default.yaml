@@ -3,7 +3,7 @@ local_batch_size: 10
 # learning rate
 lr: 0.01
 # the number of local epochs: E
-local_epochs: 3
+local_epochs: 10
 # SGD momentum 
 momentum: 0.5
 # number of each kind of kernel
@@ -31,6 +31,6 @@ gpu: 0
 # log interval
 interval: 1
 # random seed
-seed: 0
+seed: 1
 # verbose
 verbose: 1
