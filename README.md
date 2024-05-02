@@ -6,7 +6,7 @@ This implementation was developed by forking from [Federated-Learning (PyTorch)]
 
 ## Setup
 
-### Dev Containers
+### Dev Containers (Recommend)
 
 1. Open Command Palette
 2. Select `Dev Containers: Reopen in Container`
