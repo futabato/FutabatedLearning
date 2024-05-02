@@ -19,11 +19,11 @@ from nptyping import Int, NDArray, Shape
 from omegaconf import DictConfig
 from tqdm import tqdm
 
-from federatedlearning.aggregations.aggregators import average_weights
 from federatedlearning.client.training import LocalUpdate
 from federatedlearning.datasets.common import get_dataset
 from federatedlearning.models.cnn import CNNCifar, CNNMnist
 from federatedlearning.reputation.monitoring import monitore_time_series
+from federatedlearning.server.aggregations.aggregators import average_weights
 from federatedlearning.server.inferencing import inference
 
 # Set matplotlib backend to 'Agg'

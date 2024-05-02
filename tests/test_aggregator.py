@@ -1,7 +1,7 @@
 import unittest
 
 import torch
-from federatedlearning.aggregations.aggregators import average_weights
+from federatedlearning.server.aggregations.aggregators import average_weights
 
 
 class TestAverageWeights(unittest.TestCase):
