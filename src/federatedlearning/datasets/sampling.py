@@ -10,18 +10,35 @@ from torchvision import datasets, transforms
 
 def mnist_iid(dataset: Any, num_clients: int) -> dict:
     """
-    Sample I.I.D. client data from MNIST dataset
-    :param dataset:
-    :param num_clients:
-    :return: dict of image index
+    Sample I.I.D. client data from MNIST dataset.
+
+    This function divides the dataset into num_clients parts in an i.i.d. manner.
+    Each part is a set of indices representing data samples that are
+    randomly selected and mutually exclusive across clients.
+
+    :param dataset: The complete MNIST dataset to divide.
+    :param num_clients: The number of clients or parts to divide the dataset into.
+    :return: A dictionary where keys are client ids (0 to num_clients - 1) and
+             values are sets of data indices assigned to each client.
     """
+
+    # Calculate the number of items per client by dividing total dataset size by number of clients
     num_items: int = int(len(dataset) / num_clients)
+
+    # Initialize an empty dictionary for storing user data assignments and a list of all dataset indices
     dict_users, all_idxs = {}, list(range(len(dataset)))
+
+    # Iterate over the range of number of clients to distribute data
     for client_i in range(num_clients):
+        # Randomly select num_items indices for the client without replacement
         dict_users[client_i] = set(
             np.random.choice(all_idxs, num_items, replace=False)
         )
+        # Remove the selected indices from the list of all indices
+        # Ensuring subsequent clients do not receive any of these indices
         all_idxs = list(set(all_idxs) - dict_users[client_i])
+
+    # Return the dictionary mapping clients to their respective data indices
     return dict_users
 
 
