@@ -102,6 +102,11 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
 
         # Capture initial global model weights before training begins
         global_weights: dict[str, torch.Tensor] = global_model.state_dict()
+        # Initialize save path
+        save_path: str = (
+            "/workspace/outputs/weights/server/global_model_round_0.pth"
+        )
+        torch.save(global_weights, save_path)
 
         # Initialize lists to record the training progress
         train_loss: list[float] = []
@@ -119,8 +124,6 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
         finish_cross_sectional: bool = False
         # Initialize an empty set to store Byzantine clients
         byzantine_clients: set[int] = set()
-        # Initialize save path
-        save_path: str
 
         # Begin federated training loop across specified number of rounds
         for round in tqdm(range(cfg.federatedlearning.rounds)):
@@ -247,11 +250,12 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
                 #         byzantine_clients.add(selected_clients_idx[i])
                 #         # cross-sectionalは一度きり
                 #         finish_cross_sectional = True
-                for i in sorted(exclude_clients, reverse=True):
-                    local_weights.pop(i)
-                    local_losses.pop(i)
-                    byzantine_clients.add(selected_clients_idx[i])
-                finish_cross_sectional = True
+                # Cross-Sectional Monitoring の 除外コード部分
+                # for i in sorted(exclude_clients, reverse=True):
+                #     local_weights.pop(i)
+                #     local_losses.pop(i)
+                #     byzantine_clients.add(selected_clients_idx[i])
+                # finish_cross_sectional = True
 
             # TODO: if cfg.federatedlearning.num_byzantines / num_selected_clients > 0.5 and cfg.federatedlearning.warmup_rounds == 0
             # のときどうにかする

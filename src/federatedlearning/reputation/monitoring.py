@@ -7,6 +7,7 @@ from nptyping import DataFrame
 from omegaconf import DictConfig
 from scipy.stats import linregress
 from sklearn.cluster import KMeans
+from sklearn.metrics import pairwise_distances
 from sklearn.preprocessing import StandardScaler
 
 
@@ -120,62 +121,69 @@ def monitor_cross_sectional(
 ) -> tuple[list[bool], list[float]]:
     # Initialize a list to keep track of the reliability of clients
     is_reliable_list: list[bool] = [True] * num_selected_clients
+    if round > 0:
+        # Specify the number of clusters for k-means clustering
+        n_clusters: int = 2
 
-    # Specify the number of clusters for k-means clustering
-    n_clusters: int = 2
-
-    X = []  # List to store model weights for clustering
-    global_model = CNNMnist(cfg)
-    global_model.load_state_dict(
-        torch.load(
-            f"/workspace/outputs/weights/server/global_model_round_{round}.pth"
-        )
-    )
-    weight_global_model = global_model.fc2.weight.data.view(-1)
-    X.append(weight_global_model)
-
-    # Loop through each client's local model
-    for client_i in range(cfg.federatedlearning.num_clients):
-        local_model = CNNMnist(cfg)  # Create an instance of the CNN model
-        # Load the saved model weights from the current round
-        local_model.load_state_dict(
+        X = []  # List to store model weights for clustering
+        global_model = CNNMnist(cfg)
+        global_model.load_state_dict(
             torch.load(
-                client_behavior_df[client_i]["local_weight_path"][round]
+                f"/workspace/outputs/weights/server/global_model_round_{round-1}.pth"
             )
         )
-        # Flatten the weights of the last fully-connected layer
-        weight_local_model = local_model.fc2.weight.data.view(-1)
-        X.append(weight_local_model)  # Append the weights to the list
-    # Convert the list to a numpy array
-    X = np.array(X)  # type: ignore
+        weight_global_model = global_model.fc2.weight.data.view(-1)
+        X.append(weight_global_model)
 
-    scaler = StandardScaler()  # Initialize a scaler for standardization
-    X_scaled = scaler.fit_transform(X)  # Standardize the data
+        # Loop through each client's local model
+        # TODO: ここ range にしちゃだめ。ClientId でループを回す
+        for client_i in range(cfg.federatedlearning.num_clients):
+            local_model = CNNMnist(cfg)  # Create an instance of the CNN model
+            # Load the saved model weights from the current round
+            local_model.load_state_dict(
+                torch.load(
+                    client_behavior_df[client_i]["local_weight_path"][round]
+                )
+            )
+            # Flatten the weights of the last fully-connected layer
+            weight_local_model = local_model.fc2.weight.data.view(-1)
+            X.append(weight_local_model)  # Append the weights to the list
+        # Convert the list to a numpy array
+        X = np.array(X)  # type: ignore
 
-    # Perform k-means clustering with the standardized data
-    kmeans = KMeans(n_clusters=n_clusters, random_state=0, n_init="auto")
-    kmeans.fit(X_scaled)
+        scaler = StandardScaler()  # Initialize a scaler for standardization
+        X_scaled = scaler.fit_transform(X)  # Standardize the data
 
-    # グローバルモデルを基準に、正しいとするクラスターを決める
-    global_model_cluster_label = kmeans.predict(X)[0]
-    # criterion_cluster_indexes = np.where(kmeans.labels_ == global_model_cluster_label)[0]
-    not_criterion_cluster_indexes = np.where(
-        kmeans.labels_ != global_model_cluster_label
-    )[0]
+        # Perform k-means clustering with the standardized data
+        kmeans = KMeans(n_clusters=n_clusters, random_state=0, n_init="auto")
+        kmeans.fit(X_scaled)
 
-    # criterion_cluster_data = X[criterion_cluster_indexes]
+        # グローバルモデルを基準に、正しいとするクラスターを決める
+        global_model_cluster_label = kmeans.predict(X)[0]
+        # criterion_cluster_indexes = np.where(kmeans.labels_ == global_model_cluster_label)[0]
+        not_criterion_cluster_indexes = np.where(
+            kmeans.labels_ != global_model_cluster_label
+        )[0]
 
-    # Print out a message showing the potential Byzantine clients
-    print(
-        f"グローバルモデルの属するクラスターとは異なるクラスターに属する \
-Clinet ID {not_criterion_cluster_indexes} \
-が Byzantine Client である可能性が高いです"
-    )
+        # criterion_cluster_data = X[criterion_cluster_indexes]
 
-    # Update the reliability list marking Byzantine candidates as unreliable
-    for i in range(cfg.federatedlearning.num_clients):
-        if i in not_criterion_cluster_indexes:
-            is_reliable_list[i] = False
+        # Print out a message showing the potential Byzantine clients
+        print(
+            f"グローバルモデルの属するクラスターとは異なるクラスターに属する \
+    Clinet ID {not_criterion_cluster_indexes} \
+    が Byzantine Client である可能性が高いです"
+        )
+
+        # クラスター重心の座標
+        cluster_centers = kmeans.cluster_centers_
+        # クラスター重心間の対称行列距離を計算
+        cluster_distances = pairwise_distances(cluster_centers)
+        print(f"クラスター重心間の距離行列: {cluster_distances[0][1]}")
+
+        # Update the reliability list marking Byzantine candidates as unreliable
+        for i in range(cfg.federatedlearning.num_clients):
+            if i in not_criterion_cluster_indexes:
+                is_reliable_list[i] = False
 
     # Return the updated lists of client reliability and cluster distances
     return is_reliable_list, cluster_distance_list
