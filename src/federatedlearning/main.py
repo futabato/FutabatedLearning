@@ -15,7 +15,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 from nptyping import Int, NDArray, Shape
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
 
 from federatedlearning.client.training import LocalUpdate
@@ -46,7 +46,12 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
     mlflow.set_experiment(cfg.mlflow.experiment_name)
 
     # Start an MLFlow run and log the Hydra-generated configuration files
-    with mlflow.start_run(run_name=cfg.mlflow.run_name):
+    with mlflow.start_run(run_name=cfg.mlflow.run_name) as run:
+        RUN_ID = run.info.run_id
+        EXPERIMENT_ID = run.info.experiment_id
+        print(f"{EXPERIMENT_ID=}")
+        print(f"{RUN_ID=}")
+        print(f"{OmegaConf.to_yaml(cfg)=}")
         mlflow.log_artifact("/workspace/outputs/.hydra/config.yaml")
         mlflow.log_artifact("/workspace/outputs/.hydra/hydra.yaml")
         mlflow.log_artifact("/workspace/outputs/.hydra/overrides.yaml")
@@ -182,7 +187,7 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
                 local_training_info: dict = {
                     "round": round,
                     "local_loss": copy.deepcopy(loss),
-                    "local_weight_path": f"/workspace/outputs/weights/client_{client_id}/client_{client_id}_round_{round}.pth",
+                    "local_weight_path": f"/workspace/mlruns/{EXPERIMENT_ID}/{RUN_ID}/artifacts/client_{client_id}_round_{round}.pth",
                 }
                 # Append recorded details to the client behavior DataFrame
                 client_behavior_df[client_id] = pd.concat(
@@ -193,10 +198,14 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
                     ignore_index=True,
                 )
                 # Export client behavior data to CSV for analysis or audit
+                save_path = (
+                    f"/workspace/outputs/csv/client_{client_id}_behavior.csv"
+                )
                 client_behavior_df[client_id].to_csv(
-                    f"/workspace/outputs/csv/client_{client_id}_behavior.csv",
+                    save_path,
                     index=False,
                 )
+                mlflow.log_artifact(save_path)
                 # Time-Series Monitoring
                 if cfg.federatedlearning.enable_time_series_monitoring:
                     (
@@ -296,7 +305,7 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
             # Record details of the global model's state after the round
             global_model_info: dict = {
                 "round": round,
-                "global_weight_path": f"/workspace/outputs/weights/server/global_model_round_{round}.pth",
+                "global_weight_path": f"/workspace/mlruns/{EXPERIMENT_ID}/{RUN_ID}/artifacts/global_round_{round}.pth",
             }
             global_model_record_df = pd.concat(
                 [
@@ -306,10 +315,12 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
                 ignore_index=True,
             )
             # Export server-side global model records to CSV
+            save_path = "/workspace/outputs/csv/server_record.csv"
             global_model_record_df.to_csv(
-                "/workspace/outputs/csv/server_record.csv",
+                save_path,
                 index=False,
             )
+            mlflow.log_artifact(save_path)
 
             # Occasionally print summary statistics of the training progress
             if (round + 1) % print_every == 0:
