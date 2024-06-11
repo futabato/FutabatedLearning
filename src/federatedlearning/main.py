@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import copy
+import logging
 import math
 import os
 import pickle
@@ -39,6 +40,13 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
     # Record the start time for run duration
     start_time: float = time.time()
 
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(levelname)s - %(asctime)s - %(message)s",
+        filename="/workspace/outputs/main.log",
+    )
+    logger = logging.getLogger(__name__)
+
     # Setup paths and logging utilities
     mlflow.set_tracking_uri(
         "file://" + hydra.utils.get_original_cwd() + "/mlruns"
@@ -49,9 +57,11 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
     with mlflow.start_run(run_name=cfg.mlflow.run_name) as run:
         RUN_ID = run.info.run_id
         EXPERIMENT_ID = run.info.experiment_id
-        print(f"{EXPERIMENT_ID=}")
-        print(f"{RUN_ID=}")
-        print(f"{OmegaConf.to_yaml(cfg)=}")
+
+        logger.info(f"{EXPERIMENT_ID=}")
+        logger.info(f"{RUN_ID=}")
+        logger.info(f"cfg:\n{OmegaConf.to_yaml(cfg)}")
+
         mlflow.log_artifact("/workspace/outputs/.hydra/config.yaml")
         mlflow.log_artifact("/workspace/outputs/.hydra/hydra.yaml")
         mlflow.log_artifact("/workspace/outputs/.hydra/overrides.yaml")
@@ -101,7 +111,7 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
         # send it to the designated computational device
         global_model.to(device)
         global_model.train()
-        print(global_model)
+        logger.info(f"global_model:\n{global_model}")
 
         # Capture initial global model weights before training begins
         global_weights: dict[str, torch.Tensor] = global_model.state_dict()
@@ -133,7 +143,7 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
             # Collect weights and losses from clients participating in this round
             local_weights: list[dict[str, torch.Tensor]] = []
             local_losses: list[float] = []
-            print(f"\n | Global Training Round : {round+1} |\n")
+            logger.info(f"\n | Global Training Round : {round+1} |\n")
 
             # Re-enter training mode at the start of each round
             global_model.train()
@@ -324,9 +334,11 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
 
             # Occasionally print summary statistics of the training progress
             if (round + 1) % print_every == 0:
-                print(f" \nAvg Training Stats after {round+1} global rounds:")
-                print(f"Training Loss : {np.mean(np.array(train_loss))}")
-                print(
+                logger.info(
+                    f" \nAvg Training Stats after {round+1} global rounds:"
+                )
+                logger.info(f"Training Loss : {np.mean(np.array(train_loss))}")
+                logger.info(
                     "Train Accuracy: {:.2f}% \n".format(
                         100 * train_accuracy[-1]
                     )
@@ -339,15 +351,15 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
         mlflow.log_metric("Test-Loss", test_loss)
 
         # Print final training results
-        print(
+        logger.info(
             f" \n Results after {cfg.federatedlearning.rounds} global rounds of training:"
         )
-        print(
+        logger.info(
             "|---- Avg Train Accuracy: {:.2f}%".format(
                 100 * train_accuracy[-1]
             )
         )
-        print("|---- Test Accuracy: {:.2f}%".format(100 * test_acc))
+        logger.info("|---- Test Accuracy: {:.2f}%".format(100 * test_acc))
 
         # Save the training loss and accuracy data for future reference
         file_name: str = "{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]".format(
@@ -366,9 +378,6 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
             pickle.dump([train_loss, train_accuracy], f)
         # Log the file containing training data as an artifact in MLFlow
         mlflow.log_artifact(save_path)
-
-        # Output total training time
-        print("\n Total Run Time: {0:0.4f}".format(time.time() - start_time))
 
         # Plot and save the Training Loss vs Communication rounds
         save_path = f"/workspace/outputs/objects/fed_{file_name}_loss.png"
@@ -390,6 +399,13 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
         plt.savefig(save_path)
         mlflow.log_artifact(save_path)
 
+        # Output total training time
+        logger.info(
+            "\n Total Run Time: {0:0.4f}".format(time.time() - start_time)
+        )
+        mlflow.log_artifact(
+            f"/workspace/outputs/{EXPERIMENT_ID}_{RUN_ID}_{cfg.mlflow.run_name}.log"
+        )
         return test_acc
 
 
