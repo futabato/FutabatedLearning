@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
 import copy
-import logging
 import math
 import os
 import pickle
 import time
+from logging import getLogger
+from logging.config import dictConfig
 
 import hydra
 import matplotlib
@@ -15,6 +16,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
+import yaml
 from nptyping import Int, NDArray, Shape
 from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
@@ -40,12 +42,8 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
     # Record the start time for run duration
     start_time: float = time.time()
 
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(levelname)s - %(asctime)s - %(message)s",
-        filename="/workspace/outputs/main.log",
-    )
-    logger = logging.getLogger(__name__)
+    dictConfig(yaml.safe_load(open("/workspace/config/logger.yaml").read()))
+    logger = getLogger("Logger")
 
     # Setup paths and logging utilities
     mlflow.set_tracking_uri(
@@ -403,9 +401,7 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
         logger.info(
             "\n Total Run Time: {0:0.4f}".format(time.time() - start_time)
         )
-        mlflow.log_artifact(
-            f"/workspace/outputs/{EXPERIMENT_ID}_{RUN_ID}_{cfg.mlflow.run_name}.log"
-        )
+        mlflow.log_artifact("/workspace/outputs/main.log")
         return test_acc
 
 
