@@ -28,8 +28,7 @@ from federatedlearning.reputation.monitoring import (
 from federatedlearning.server.aggregations.aggregators import average_weights
 from federatedlearning.server.inferencing import inference
 
-# Set matplotlib backend to 'Agg'
-# to avoid the need for a GUI backend
+# Set matplotlib backend to 'Agg' to avoid the need for a GUI backend
 matplotlib.use("Agg")
 
 
@@ -101,8 +100,10 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
 
         # Capture initial global model weights before training begins
         global_weights: dict[str, torch.Tensor] = global_model.state_dict()
-        # Initialize save path
-        save_path: str = "/workspace/outputs/weights/server/global_round_0.pth"
+
+        # Initialize save_path
+        save_path: str
+        save_path = "/workspace/outputs/weights/server/global_round_0.pth"
         torch.save(global_weights, save_path)
 
         # Initialize lists to record the training progress
