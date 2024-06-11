@@ -103,9 +103,7 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
         # Capture initial global model weights before training begins
         global_weights: dict[str, torch.Tensor] = global_model.state_dict()
         # Initialize save path
-        save_path: str = (
-            "/workspace/outputs/weights/server/global_model_round_0.pth"
-        )
+        save_path: str = "/workspace/outputs/weights/server/global_round_0.pth"
         torch.save(global_weights, save_path)
 
         # Initialize lists to record the training progress
@@ -178,13 +176,13 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
                 local_weights.append(copy.deepcopy(weight))
                 local_losses.append(copy.deepcopy(loss))
                 # Save local model weights and record training details
-                save_path = f"/workspace/outputs/weights/client_{client_id}/local_model_round_{round}.pth"
+                save_path = f"/workspace/outputs/weights/client_{client_id}/client_{client_id}_round_{round}.pth"
                 torch.save(weight, save_path)
                 mlflow.log_artifact(save_path)
                 local_training_info: dict = {
                     "round": round,
                     "local_loss": copy.deepcopy(loss),
-                    "local_weight_path": f"/workspace/outputs/weights/client_{client_id}/local_model_round_{round}.pth",
+                    "local_weight_path": f"/workspace/outputs/weights/client_{client_id}/client_{client_id}_round_{round}.pth",
                 }
                 # Append recorded details to the client behavior DataFrame
                 client_behavior_df[client_id] = pd.concat(
@@ -263,7 +261,9 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
             # Aggregate local weights to form new global model weights (FedAVG)
             global_weights = average_weights(local_weights)
             # Save updated global model weights
-            save_path = f"/workspace/outputs/weights/server/global_model_round_{round}.pth"
+            save_path = (
+                f"/workspace/outputs/weights/server/global_round_{round}.pth"
+            )
             torch.save(global_weights, save_path)
             mlflow.log_artifact(save_path)
             # Load the newly aggregated weights into the global model
