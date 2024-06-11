@@ -49,7 +49,7 @@ def log_total_distances(
 def monitore_time_series(
     client_id: int,
     round: int,
-    client_behavior_df: list[DataFrame],
+    client_history_df: list[DataFrame],
     euclidean_distance_list: list[list[float]],
     cfg: DictConfig,
     time_series_threshold: float = 2.0,
@@ -62,7 +62,7 @@ def monitore_time_series(
     Args:
         client_id (int): The ID of the client being monitored.
         round (int): The current round of federated learning.
-        client_behavior_df (list[DataFrame]): A list of DataFrames containing client behavior information.
+        client_history_df (list[DataFrame]): A list of DataFrames containing client history information.
         euclidean_distance_list (list[list[float]]): A list of lists containing the Euclidean distances for each client and round.
         cfg (DictConfig): The configuration parameters.
         time_series_threshold (float, optional): The threshold for the slope of Euclidean distances. Defaults to 2.0.
@@ -78,7 +78,7 @@ def monitore_time_series(
         local_model = CNNMnist(cfg)
         local_model.load_state_dict(
             torch.load(
-                client_behavior_df[client_id]["local_weight_path"][round]
+                client_history_df[client_id]["local_weight_path"][round]
             )
         )
 
@@ -114,7 +114,7 @@ def monitore_time_series(
 def monitor_cross_sectional(
     round: int,
     num_selected_clients: int,
-    client_behavior_df: list[DataFrame],
+    client_history_df: list[DataFrame],
     cfg: DictConfig,
     cluster_distance_list: list[float],
     cross_sectional_threshold: float = 15.0,
@@ -142,7 +142,7 @@ def monitor_cross_sectional(
             # Load the saved model weights from the current round
             local_model.load_state_dict(
                 torch.load(
-                    client_behavior_df[client_i]["local_weight_path"][round]
+                    client_history_df[client_i]["local_weight_path"][round]
                 )
             )
             # Flatten the weights of the last fully-connected layer

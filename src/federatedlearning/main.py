@@ -67,8 +67,8 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
             else torch.device("cpu")
         )
 
-        # Initialize DataFrame to track client update behaviors during training
-        client_behavior_df: list[pd.DataFrame] = [
+        # Initialize DataFrame to track client update histories during training
+        client_history_df: list[pd.DataFrame] = [
             pd.DataFrame(columns=["round", "local_loss", "local_weight_path"])
             for _ in range(cfg.federatedlearning.num_clients)
         ]
@@ -189,19 +189,19 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
                     "local_loss": copy.deepcopy(loss),
                     "local_weight_path": f"/workspace/mlruns/{EXPERIMENT_ID}/{RUN_ID}/artifacts/client_{client_id}_round_{round}.pth",
                 }
-                # Append recorded details to the client behavior DataFrame
-                client_behavior_df[client_id] = pd.concat(
+                # Append recorded details to the client history DataFrame
+                client_history_df[client_id] = pd.concat(
                     [
-                        client_behavior_df[client_id],
+                        client_history_df[client_id],
                         pd.DataFrame(local_training_info, index=[round]),
                     ],
                     ignore_index=True,
                 )
-                # Export client behavior data to CSV for analysis or audit
+                # Export client history data to CSV for analysis or audit
                 save_path = (
-                    f"/workspace/outputs/csv/client_{client_id}_behavior.csv"
+                    f"/workspace/outputs/csv/client_{client_id}_history.csv"
                 )
-                client_behavior_df[client_id].to_csv(
+                client_history_df[client_id].to_csv(
                     save_path,
                     index=False,
                 )
@@ -214,7 +214,7 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
                     ) = monitore_time_series(
                         client_id=client_id,
                         round=round,
-                        client_behavior_df=client_behavior_df,
+                        client_history_df=client_history_df,
                         euclidean_distance_list=euclidean_distance_list,
                         cfg=cfg,
                     )
@@ -237,7 +237,7 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
                 ) = monitor_cross_sectional(
                     round,
                     num_selected_clients,
-                    client_behavior_df,
+                    client_history_df,
                     cfg,
                     cluster_distance_list,
                 )
