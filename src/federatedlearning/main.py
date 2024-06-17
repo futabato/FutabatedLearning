@@ -119,6 +119,12 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
         save_path = "/workspace/outputs/weights/server/global_round_0.pth"
         torch.save(global_weights, save_path)
 
+        # Issue-23: NFS
+        [
+            os.makedirs(f"/share/round_{round}")
+            for round in range(cfg.federatedlearning.rounds)
+        ]
+
         # Initialize lists to record the training progress
         train_loss: list[float] = []
         train_accuracy: list[float] = []
@@ -192,6 +198,10 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
                 save_path = f"/workspace/outputs/weights/client_{client_id}/client_{client_id}_round_{round}.pth"
                 torch.save(weight, save_path)
                 mlflow.log_artifact(save_path)
+                # Issue-23: NFS
+                save_path = f"/share/round_{round}/client_{client_id}.pth"
+                torch.save(weight, save_path)
+
                 local_training_info: dict = {
                     "round": round,
                     "local_loss": copy.deepcopy(loss),
