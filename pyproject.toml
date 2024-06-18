@@ -29,6 +29,7 @@ jupyterlab = "^4.1.0"
 hydra-optuna-sweeper = "^1.2.0"
 pyyaml = "^6.0.1"
 types-pyyaml = "^6.0.12.20240311"
+tslearn = "^0.6.3"
 
 [tool.poetry.group.dev.dependencies]
 pyproject-flake8 = "^6.0.0.post1"
