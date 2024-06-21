@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+service FederatedLearning {
+    rpc SendLocalUpdate (LocalUpdate) returns (ServerResponse);
+}
+
+message LocalUpdate {
+    bytes weights = 1;
+    float loss = 2;
+}
+
+message ServerResponse {
+    string message = 1;
+}
