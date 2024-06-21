@@ -121,7 +121,7 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
 
         # Issue-23: NFS
         [
-            os.makedirs(f"/share/round_{round}")
+            os.makedirs(f"/shared/round_{round}")
             for round in range(cfg.federatedlearning.rounds)
         ]
 
@@ -199,7 +199,7 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
                 torch.save(weight, save_path)
                 mlflow.log_artifact(save_path)
                 # Issue-23: NFS
-                save_path = f"/share/round_{round}/client_{client_id}.pth"
+                save_path = f"/shared/round_{round}/client_{client_id}.pth"
                 torch.save(weight, save_path)
 
                 local_training_info: dict = {

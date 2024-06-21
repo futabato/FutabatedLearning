@@ -44,7 +44,7 @@ def poll_for_model_updates(
 
 
 if __name__ == "__main__":
-    shared_directory = "/share"
+    shared_directory = "/shared"
     num_clients = 10
     num_rounds = 10
     polling_interval_seconds = 5
