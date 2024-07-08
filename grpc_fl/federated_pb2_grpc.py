@@ -44,12 +44,23 @@ class FederatedLearningStub(object):
                 request_serializer=federated__pb2.LocalUpdate.SerializeToString,
                 response_deserializer=federated__pb2.ServerResponse.FromString,
                 _registered_method=True)
+        self.GetGlobalModel = channel.unary_unary(
+                '/FederatedLearning/GetGlobalModel',
+                request_serializer=federated__pb2.Empty.SerializeToString,
+                response_deserializer=federated__pb2.GlobalModel.FromString,
+                _registered_method=True)
 
 
 class FederatedLearningServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def SendLocalUpdate(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetGlobalModel(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -62,6 +73,11 @@ def add_FederatedLearningServicer_to_server(servicer, server):
                     servicer.SendLocalUpdate,
                     request_deserializer=federated__pb2.LocalUpdate.FromString,
                     response_serializer=federated__pb2.ServerResponse.SerializeToString,
+            ),
+            'GetGlobalModel': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetGlobalModel,
+                    request_deserializer=federated__pb2.Empty.FromString,
+                    response_serializer=federated__pb2.GlobalModel.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -91,6 +107,33 @@ class FederatedLearning(object):
             '/FederatedLearning/SendLocalUpdate',
             federated__pb2.LocalUpdate.SerializeToString,
             federated__pb2.ServerResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetGlobalModel(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/FederatedLearning/GetGlobalModel',
+            federated__pb2.Empty.SerializeToString,
+            federated__pb2.GlobalModel.FromString,
             options,
             channel_credentials,
             insecure,

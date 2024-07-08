@@ -2,13 +2,19 @@ syntax = "proto3";
 
 service FederatedLearning {
     rpc SendLocalUpdate (LocalUpdate) returns (ServerResponse);
+    rpc GetGlobalModel(Empty) returns (GlobalModel);
 }
 
 message LocalUpdate {
     bytes weights = 1;
-    float loss = 2;
 }
 
 message ServerResponse {
     string message = 1;
+}
+
+message Empty {}
+
+message GlobalModel {
+    bytes weights = 1;
 }
