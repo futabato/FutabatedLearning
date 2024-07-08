@@ -1,8 +1,9 @@
 import pika
 import pickle
+import random
 
 # 学習済みモデルのダミーデータ（例）
-local_model = {'weights': [1, 2, 3]}
+local_model = {'weights': [random.random() for _ in range(3)]}
 
 # RabbitMQサーバーに接続
 connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))

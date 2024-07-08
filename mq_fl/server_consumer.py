@@ -8,20 +8,26 @@ channel = connection.channel()
 # キューを宣言
 channel.queue_declare(queue='local_models')
 
+# 集約するローカルモデルの数
+REQUIRED_LOCAL_MODELS = 2
+received_models = []
+
 def callback(ch, method, properties, body):
     local_model = pickle.loads(body)
     print(" [x] Received local model: %s" % local_model)
+    received_models.append(local_model)
     # ここでローカルモデルを集約し、グローバルモデルを作成するロジックを追加
     # ダミーのグローバルモデルを送信
-    # global_model = {'weights': [4, 5, 6]}
-    global_model = aggregate(local_model)
-    send_global_model(global_model)
+    if len(received_models) >= REQUIRED_LOCAL_MODELS:
+        global_model = aggregate_models(received_models)
+        received_models.clear()
+        send_global_model(global_model)
 
-def aggregate(local_model):
-    global_model = local_model.copy()
-    for i, weight in enumerate(local_model['weights']):
-        global_model['weights'][i] = weight * 2
-    return global_model
+def aggregate_models(models):
+    # ここにモデルの集約ロジックを実装
+    # 以下はダミーの集約ロジックです
+    aggregated_weights = [sum(x) / len(models) for x in zip(*[model['weights'] for model in models])]
+    return {'weights': aggregated_weights}
 
 def send_global_model(global_model):
     global_connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
