@@ -64,6 +64,58 @@ def median_weights(
     return weight_median
 
 
+def krum(
+    weights: list[dict[str, torch.Tensor]], f: int
+) -> dict[str, torch.Tensor]:
+    """
+    Implementation of the Krum algorithm.
+
+    Args:
+        weights (list[dict[str, torch.Tensor]]): List of model weights from different workers.
+        f (int): Maximum number of Byzantine (malicious) workers.
+
+    Returns:
+        dict[str, torch.Tensor]: Selected model weights after applying Krum algorithm.
+    """
+
+    num_clients = len(weights)
+
+    # Check if the number of weights is sufficient
+    if num_clients <= 2 * f:
+        raise ValueError("Not enough weights to tolerate f Byzantine workers.")
+
+    distances = torch.zeros((num_clients, num_clients))
+
+    # Compute pairwise distances between all weight vectors
+    for i in range(num_clients):
+        for j in range(i + 1, num_clients):
+            dist = 0
+            # Iterate over the named parameters of both models simultaneously.
+            for (layer_i, param_i), (layer_j, param_j) in zip(
+                weights[i].items(), weights[j].items()
+            ):
+                # Ensure the layers compared are corresponding layers by checking their names.
+                assert layer_i == layer_j, "Layer names do not match"
+
+                # Calculate Euclidean distance for the current layer's parameters and add to the total distance.
+                # p=2 specifies that this is the L2 norm, which corresponds to Euclidean distance.
+                dist += torch.norm(param_i - param_j, p=2).item()
+            distances[i, j] = dist
+            distances[j, i] = dist
+
+    scores = torch.zeros(num_clients)
+
+    # Calculate scores for each weight vector
+    print(f"{distances=}")
+    sorted_dists, _ = torch.sort(distances[i], dim=-1)
+    scores[i] = torch.sum(sorted_dists[: (num_clients - f - 1)], dim=-1)
+    # Select the weight vector with the smallest score
+    selected_index = torch.argmin(scores)
+
+    weight_krum = copy.deepcopy(weights[selected_index])
+    return weight_krum
+
+
 # def marginal_median(
 #     gradients: list[list[torch.Tensor]],
 #     net: Net,
