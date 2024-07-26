@@ -77,7 +77,6 @@ def krum(
     Returns:
         dict[str, torch.Tensor]: Selected model weights after applying Krum algorithm.
     """
-
     num_clients = len(weights)
 
     # Check if the number of weights is sufficient
@@ -96,7 +95,6 @@ def krum(
             ):
                 # Ensure the layers compared are corresponding layers by checking their names.
                 assert layer_i == layer_j, "Layer names do not match"
-
                 # Calculate Euclidean distance for the current layer's parameters and add to the total distance.
                 # p=2 specifies that this is the L2 norm, which corresponds to Euclidean distance.
                 dist += torch.norm(param_i - param_j, p=2).item()
@@ -106,9 +104,9 @@ def krum(
     scores = torch.zeros(num_clients)
 
     # Calculate scores for each weight vector
-    print(f"{distances=}")
-    sorted_dists, _ = torch.sort(distances[i], dim=-1)
-    scores[i] = torch.sum(sorted_dists[: (num_clients - f - 1)], dim=-1)
+    for i in range(num_clients):
+        sorted_dists, _ = torch.sort(distances[i], dim=-1)
+        scores[i] = torch.sum(sorted_dists[: (num_clients - f - 1)], dim=-1)
     # Select the weight vector with the smallest score
     selected_index = torch.argmin(scores)
 
