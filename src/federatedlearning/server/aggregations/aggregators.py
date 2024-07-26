@@ -32,6 +32,38 @@ def average_weights(
     return weight_avg
 
 
+def median_weights(
+    local_weights: list[dict[str, torch.Tensor]],
+) -> dict[str, torch.Tensor]:
+    """
+    Computes the median weights from multiple state dictionaries (each representing model parameters).
+
+    Args:
+        local_weights (list of dict): A list where each element is a state dictionary of model weights.
+
+    Returns:
+        A dict of the same structure as the input but with median weights.
+    """
+    # Initialize the median weights with deep copied weights from the first model
+    weight_median: dict[str, torch.Tensor] = copy.deepcopy(local_weights[0])
+
+    # Iterate over each key in the weight dictionary
+    for weight_key in weight_median.keys():
+        # Collect all weights for this specific key across all models
+        stacked_weights = torch.stack(
+            [
+                local_weights[weight_i][weight_key]
+                for weight_i in range(len(local_weights))
+            ]
+        )
+
+        # Compute the median along the 0th dimension
+        weight_median[weight_key] = torch.median(stacked_weights, dim=0).values
+
+    # Return the median weights
+    return weight_median
+
+
 # def marginal_median(
 #     gradients: list[list[torch.Tensor]],
 #     net: Net,
