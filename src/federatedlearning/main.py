@@ -28,7 +28,10 @@ from federatedlearning.reputation.monitoring import (
     monitor_cross_sectional,
     monitore_time_series,
 )
-from federatedlearning.server.aggregations.aggregators import average_weights
+from federatedlearning.server.aggregations.aggregators import (
+    average_weights,
+    median_weights,
+)
 from federatedlearning.server.inferencing import inference
 
 # Set matplotlib backend to 'Agg' to avoid the need for a GUI backend
@@ -276,7 +279,12 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
             # のときどうにかする
 
             # Aggregate local weights to form new global model weights (FedAVG)
-            global_weights = average_weights(local_weights)
+            if cfg.federatedlearning.aggregation == "mean":
+                global_weights = average_weights(local_weights)
+            elif cfg.federatedlearning.aggregation == "median":
+                global_weights = median_weights(local_weights)
+            else:
+                global_weights = average_weights(local_weights)
             # Save updated global model weights
             save_path = (
                 f"/workspace/outputs/weights/server/global_round_{round}.pth"

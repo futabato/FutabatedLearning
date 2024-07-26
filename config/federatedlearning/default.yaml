@@ -18,8 +18,8 @@ enable_cross_sectional_monitoring: false
 choice_src_label: 5
 # chosen-labelflip attack, label number of the destination
 choice_dst_label: 3
-# # aggregation method, "mean", "median", "krum" or "zeno"
-# aggregation: "mean"
+# aggregation method, "mean", "median", "krum" or "zeno"
+aggregation: "mean"
 # # batch size of Zeno, n_{r} in the paper
 # zeno_size: 4
 # # in the paper, r = \frac{\gamma}{\rho}
