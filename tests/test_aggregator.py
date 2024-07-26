@@ -1,7 +1,10 @@
 import unittest
 
 import torch
-from federatedlearning.server.aggregations.aggregators import average_weights
+from federatedlearning.server.aggregations.aggregators import (
+    average_weights,
+    median_weights,
+)
 
 
 class TestAverageWeights(unittest.TestCase):
@@ -39,6 +42,48 @@ class TestAverageWeights(unittest.TestCase):
             self.assertTrue(
                 torch.allclose(expected_result[key], result[key]),
                 f"Weights averaged incorrectly for key '{key}'.",
+            )
+
+
+class TestMedianWeights(unittest.TestCase):
+    def test_median_of_empty_list(self) -> None:
+        with self.assertRaises(IndexError):
+            median_weights([])  # Empty list should raise an IndexError
+
+    def test_median_with_single_weight(self) -> None:
+        weight: list[dict[str, torch.Tensor]] = [
+            {"a": torch.tensor(1.0), "b": torch.tensor(2.0)}
+        ]
+        expected_result: dict[str, torch.Tensor] = {
+            "a": torch.tensor(1.0),
+            "b": torch.tensor(2.0),
+        }
+        result: dict[str, torch.Tensor] = median_weights(weight)
+        for key in expected_result.keys():
+            self.assertTrue(
+                torch.equal(expected_result[key], result[key]),
+                "Median with single weight should return the weight itself.",
+            )
+
+    def test_median_weights(self) -> None:
+        weights: list[dict[str, torch.Tensor]] = [
+            {"a": torch.tensor([1.0, 2.0]), "b": torch.tensor([3.0, 4.0])},
+            {"a": torch.tensor([5.0, 6.0]), "b": torch.tensor([7.0, 8.0])},
+            {"a": torch.tensor([9.0, 10.0]), "b": torch.tensor([11.0, 12.0])},
+        ]
+        expected_result: dict[str, torch.Tensor] = {
+            "a": torch.tensor(
+                [5.0, 6.0]
+            ),  # Median of [1, 5, 9] and [2, 6, 10]
+            "b": torch.tensor(
+                [7.0, 8.0]
+            ),  # Median of [3, 7, 11] and [4, 8, 12]
+        }
+        result: dict[str, torch.Tensor] = median_weights(weights)
+        for key in expected_result.keys():
+            self.assertTrue(
+                torch.equal(expected_result[key], result[key]),
+                f"Weights median incorrectly for key '{key}'.",
             )
 
 
