@@ -1,9 +1,9 @@
 # number of users: K
-num_clients: 100
+num_clients: 20
 # the fraction of clients: C
-frac: 0.1
+frac: 1
 # number of faulty workers
-num_byzantines: 60
+num_byzantines: 0
 # number of rounds of training
 rounds: 10
 # number of warmup epochs
@@ -12,6 +12,14 @@ warmup_rounds: 0
 byzantine_type: "labelflip"
 # whether enable time-series-monitoring
 enable_time_series_monitoring: false
+# time_series_convergence (alpha)
+time_series_convergence_threshold: 2.0
+# time_series_similarity (beta)
+time_series_similarity_threshold: 0.85
+# whether enable trust-scored clustering
+enable_trust_scored_clustering: false
+# clustering silhouette score threshold
+clustering_silhouette_score_threshold: 0.85
 # whether enable time-series-monitoring
 enable_cross_sectional_monitoring: false
 # chosen-labelflip attack, label number of the source
