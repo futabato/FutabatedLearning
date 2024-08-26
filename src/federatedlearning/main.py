@@ -126,8 +126,6 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
         # Initialize lists to record the training progress
         train_loss: list[float] = []
         train_accuracy: list[float] = []
-        # Interval for printing aggregated training stats
-        print_every: int = 2
 
         # Initialize lists to store euclidean distances for a each client across all rounds.
         euclidean_distance_list: list[list[float]] = [
@@ -345,21 +343,22 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
 
             # Occasionally print summary statistics of the training progress
             if (round + 1) % print_every == 0:
-                logger.info(
-                    f" \nAvg Training Stats after {round+1} global rounds:"
-                )
-                logger.info(f"Training Loss : {np.mean(np.array(train_loss))}")
-                logger.info(
-                    "Train Accuracy: {:.2f}% \n".format(
-                        100 * train_accuracy[-1]
-                    )
-                )
+            logger.info(
+                f" \nAvg Training Stats after {round+1} global rounds:"
+            )
+            logger.info(f"Training Loss : {np.mean(np.array(train_loss))}")
+            logger.info(
+                "Train Accuracy: {:.2f}% \n".format(100 * train_accuracy[-1])
+            )
 
-        # After training completion, evaluate the global model on the test dataset
-        test_acc, test_loss = inference(cfg, global_model, test_dataset)
-        # Log final test metrics to MLFlow
-        mlflow.log_metric("Test-Accuracy", test_acc)
-        mlflow.log_metric("Test-Loss", test_loss)
+            # After training completion, evaluate the global model on the test dataset
+            test_acc, test_loss = inference(cfg, global_model, test_dataset)
+            # Log final test metrics to MLFlow
+            mlflow.log_metric("Test-Accuracy", test_acc, step=round)
+            mlflow.log_metric("Test-Loss", test_loss, step=round)
+            logger.info(f"Test Loss : {test_loss}")
+            logger.info("Test Accuracy: {:.2f}% \n".format(100 * test_acc))
+            logger.info(f"{byzantine_clients=}")
 
         # Print final training results
         logger.info(
