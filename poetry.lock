@@ -1525,6 +1525,19 @@ files = [
 ]
 
 [[package]]
+name = "japanize-matplotlib"
+version = "1.1.3"
+description = "matplotlibのフォント設定を自動で日本語化する"
+optional = false
+python-versions = "*"
+files = [
+    {file = "japanize-matplotlib-1.1.3.tar.gz", hash = "sha256:e89e7d9e109820962650e59a130403b59b33915fde3871a265a5891d9bf5e079"},
+]
+
+[package.dependencies]
+matplotlib = "*"
+
+[[package]]
 name = "jedi"
 version = "0.19.1"
 description = "An autocompletion tool for Python that can be used for text editors."
@@ -2162,6 +2175,20 @@ packaging = ">=20.0"
 pillow = ">=6.2.0"
 pyparsing = ">=2.3.1,<3.1"
 python-dateutil = ">=2.7"
+
+[[package]]
+name = "matplotlib-fontja"
+version = "1.0.0"
+description = "matplotlibを日本語表示に対応させます。"
+optional = false
+python-versions = "*"
+files = [
+    {file = "matplotlib_fontja-1.0.0-py2.py3-none-any.whl", hash = "sha256:8aa4433ebd34452ae2e8e6dcddb580540fdcdc62df90ae0f19e62615a59af577"},
+    {file = "matplotlib_fontja-1.0.0.tar.gz", hash = "sha256:d3b92a1927a9c1dad2932423668777742b6b3f9172b33fe86300dc5bbc2755e6"},
+]
+
+[package.dependencies]
+matplotlib = "*"
 
 [[package]]
 name = "matplotlib-inline"
@@ -5196,4 +5223,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "5f5c765ff54fbe42ce70b371598eae78a64a1213caf6b17163f7abfff1af1a34"
+content-hash = "0baa729ded67cd56f5662a58bc761b10b7b5802bc913e24bf380e8a24b7e5051"
