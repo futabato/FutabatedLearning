@@ -72,6 +72,16 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
         mlflow.log_params(cfg.federatedlearning)
         mlflow.log_params(cfg.train)
 
+        # Python random
+        random.seed(cfg.train.seed)
+        # Numpy
+        np.random.seed(cfg.train.seed)
+        # Pytorch
+        torch.manual_seed(cfg.train.seed)
+        torch.cuda.manual_seed(cfg.train.seed)
+        torch.backends.cudnn.deterministic = True
+        torch.use_deterministic_algorithms = True
+
         # Determine the computational device based on the configuration
         device: torch.device = (
             torch.device(f"cuda:{cfg.train.gpu}")
