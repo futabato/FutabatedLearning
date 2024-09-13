@@ -1,17 +1,27 @@
-from typing import Any
+from logging import getLogger
+from typing import Any, Iterable
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import torch.nn as nn
 from federatedlearning.models.cnn import CNNMnist
+from models.resnet import ResNet18
 from nptyping import DataFrame
 from omegaconf import DictConfig
+from scipy.spatial.distance import cosine
 from scipy.stats import linregress
 from sklearn.cluster import KMeans
-from sklearn.metrics import pairwise_distances
+from sklearn.decomposition import TruncatedSVD
+from sklearn.manifold import TSNE
+from sklearn.metrics import pairwise_distances, silhouette_score
+from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import StandardScaler
 
+logger = getLogger(__name__)
 
-def log_total_distances(
+
+def calc_total_distances(
     global_model: CNNMnist | Any, local_model: CNNMnist | Any
 ) -> float:
     """
@@ -46,14 +56,149 @@ def log_total_distances(
     return distance
 
 
-def monitore_time_series(
+# Analyse variations in output layer weights.
+def extract_output_layer_weights(model: nn.Module) -> np.ndarray:
+    update = model.state_dict()
+    return update["fc2.weight"].detach().numpy()
+
+
+# Calculate the amount of weight variation to detect anomalies (compared with previous rounds)
+def compare_previous_round(
+    current_weights: nn.Module,
+    previous_weights: nn.Module,
+    threshold: float = 0.5,
+) -> tuple[bool, list[list[float]]]:
+    """
+    Function to detect abnormal weight variations.
+
+    This function compares the current weights with the previous weights to detect any abnormal variations.
+    It calculates the variation of each weight and checks if the total variation exceeds a specified threshold.
+
+    Parameters:
+    current_weights (list of np.ndarray): List of current client weights.
+    previous_weights (list of np.ndarray): List of previous client weights.
+    threshold (float): Threshold for detecting anomalies. Default is 0.5.
+
+    Returns:
+    tuple:
+        bool: True if the total variation exceeds the threshold, otherwise False.
+        list: List of variations for each client.
+    """
+    # Calculate the weight variations for each client
+    variations = [
+        np.linalg.norm(current - previous)
+        for current, previous in zip(current_weights, previous_weights)
+    ]
+    # print('Weight variations:', variations)
+
+    # Check if the total variation exceeds the threshold
+    total_variations = sum(variations)
+    # print(f"{total_variations}")
+
+    if total_variations > threshold:
+        return True, variations
+    return False, variations
+
+
+def check_output_layer_changes(
+    current_weight: nn.Module, previous_weight: nn.Module, threshold: float
+) -> tuple[bool, list[float]]:
+    """
+    Check for significant changes in output layer weights between two rounds.
+
+    Args:
+    - model_current (nn.Module): Current round's model.
+    - model_previous (nn.Module): Previous round's model.
+    - threshold (float): Cosine similarity threshold for detecting abnormal changes.
+
+    Returns:
+    - bool: True if an abnormal change is not detected, False otherwise.
+    """
+    is_reliable_list: list[bool] = [True] * len(current_weight)
+    cos_sim_list = []
+    for node in range(len(current_weight)):
+        # Calculate cosine similarity
+        cos_sim = cosine_similarity(
+            current_weight[node].reshape(1, -1),
+            previous_weight[node].reshape(1, -1),
+        )
+        cos_sim_list.append(cos_sim)
+        # Check against the threshold
+        # 遠ざかるほど小さくなるはず -> 小さいと怪しい
+        if cos_sim < threshold:
+            print(f"[Node {node}] {cos_sim=}")
+            is_reliable_list[node] = False
+
+    # 1つでもFalseがあってはいけない
+    return all(is_reliable_list), cos_sim_list
+
+
+def tsne_clustering(
+    data: np.ndarray, n_clusters: int = 2
+) -> tuple[np.ndarray, np.ndarray, Iterable[int]]:
+    # Dimensional compression with t-SNE.
+    tsvd_data = TruncatedSVD(n_components=50).fit_transform(data)
+    tsne = TSNE(n_components=n_clusters, random_state=42, perplexity=3)
+    tsne_result = tsne.fit_transform(tsvd_data)
+
+    # Clustering with k-Means
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    clusters = kmeans.fit_predict(tsne_result)
+    cluster_labels = kmeans.labels_
+
+    return tsne_result, clusters, cluster_labels
+
+
+def visualize_clusters(
+    tsne_result: np.ndarray, clusters: Iterable[int], round_number: int
+) -> None:
+    plt.figure(figsize=(8, 5))
+    plt.scatter(
+        tsne_result[:, 0],
+        tsne_result[:, 1],
+        c=clusters,
+        cmap="viridis",
+        alpha=0.5,
+    )
+    plt.title(
+        f"Clients Clustering with t-SNE and k-means (Round {round_number})"
+    )
+    plt.xlabel("t-SNE feature-1")
+    plt.ylabel("t-SNE feature-2")
+    plt.colorbar()
+    plt.show()
+
+
+def flatten_state_dict(state_dict: nn.Module) -> np.ndarray:
+    flattened = []
+    for _, value in state_dict.named_parameters():
+        flattened.append(value.flatten().detach().numpy())
+    return np.concatenate(flattened)
+
+
+def eliminate_byzantine_clients(
+    local_weights: list[dict[str, torch.Tensor]],
+    local_losses: list[float],
+    byzantine_clients: set[int],
+) -> tuple[list[dict[str, torch.Tensor]], list[float]]:
+    local_weights = [
+        v for i, v in enumerate(local_weights) if i not in byzantine_clients
+    ]
+    local_losses = [
+        v for i, v in enumerate(local_losses) if i not in byzantine_clients
+    ]
+    return local_weights, local_losses
+
+
+def monitor_time_series_convergence(
     client_id: int,
     round: int,
+    global_model_record_df: DataFrame,
+    byzantine_clients: set[int],
     client_history_df: list[DataFrame],
     euclidean_distance_list: list[list[float]],
     cfg: DictConfig,
-    time_series_threshold: float = 2.0,
-) -> tuple[bool, list[list[float]]]:
+) -> bool:
     """
     Monitors the time series of Euclidean distances between the local and global models
     for a given client and rounds. If the slope of the Euclidean distances over the last
@@ -71,11 +216,20 @@ def monitore_time_series(
         tuple[bool, list[list[float]]]: A tuple containing a boolean indicating whether the client is reliable
         and the updated list of Euclidean distances for each client and round.
     """
+    if client_id in byzantine_clients:
+        return False
+
     is_reliable: bool = True  # Initialize is_reliable as True
+
+    if cfg.train.dataset == "mnist":
+        global_model = CNNMnist(cfg=cfg)
+        local_model = CNNMnist(cfg=cfg)
+    elif cfg.train.dataset == "cifar":
+        global_model = ResNet18()
+        local_model = ResNet18()
     # Check if it's not the first round
     if round > 0:
         # Load the local model weights for the current client and round
-        local_model = CNNMnist(cfg)
         local_model.load_state_dict(
             torch.load(
                 client_history_df[client_id]["local_weight_path"][round]
@@ -83,15 +237,12 @@ def monitore_time_series(
         )
 
         # Load the global model weights from the previous round
-        global_model = CNNMnist(cfg)
         global_model.load_state_dict(
-            torch.load(
-                f"/workspace/outputs/weights/server/global_model_round_{round-1}.pth"
-            )
+            torch.load(global_model_record_df["global_weight_path"][round - 1])
         )
 
         # Calculate and store the Euclidean distance between the local and global models
-        euclidean_distance_list[client_id][round] = log_total_distances(
+        euclidean_distance_list[client_id][round] = calc_total_distances(
             global_model, local_model
         )
 
@@ -104,86 +255,153 @@ def monitore_time_series(
             ],
         )
         # Check if the slope exceeds the threshold
-        if time_series_threshold <= slope:
-            print(f"CLIENT {client_id} is BYZANTINE CLIENT!!!")
+        if cfg.federatedlearning.time_series_convergence_threshold <= slope:
+            print(
+                f"[TimeSeriesConvergence] CLIENT {client_id} is BYZANTINE CLIENT!!!"
+            )
             is_reliable = False  # Mark the client as unreliable
 
-    return (is_reliable, euclidean_distance_list)
+    # return (is_reliable, euclidean_distance_list)
+    return is_reliable
 
 
-def monitor_cross_sectional(
+def monitor_time_series_similarity(
+    client_id: int,
     round: int,
-    num_selected_clients: int,
+    byzantine_clients: set[int],
     client_history_df: list[DataFrame],
     cfg: DictConfig,
-    cluster_distance_list: list[float],
-    cross_sectional_threshold: float = 15.0,
-) -> tuple[list[bool], list[float]]:
-    # Initialize a list to keep track of the reliability of clients
-    is_reliable_list: list[bool] = [True] * num_selected_clients
-    if round > 0:
-        # Specify the number of clusters for k-means clustering
-        n_clusters: int = 2
+) -> bool:
+    if client_id in byzantine_clients:
+        return False
 
-        X = []  # List to store model weights for clustering
-        global_model = CNNMnist(cfg)
-        global_model.load_state_dict(
+    if cfg.train.dataset == "mnist":
+        previous_local_model = CNNMnist(cfg)
+        current_local_model = CNNMnist(cfg)
+    elif cfg.train.dataset == "cifar":
+        previous_local_model = ResNet18()
+        current_local_model = ResNet18()
+
+    is_reliable: bool = True
+    if round > 0:
+        previous_local_model.load_state_dict(
             torch.load(
-                f"/workspace/outputs/weights/server/global_model_round_{round-1}.pth"
+                client_history_df[client_id]["local_weight_path"][round - 1]
             )
         )
-        weight_global_model = global_model.fc2.weight.data.view(-1)
-        X.append(weight_global_model)
+        current_local_model.load_state_dict(
+            torch.load(
+                client_history_df[client_id]["local_weight_path"][round]
+            )
+        )
+        previous_weights = extract_output_layer_weights(previous_local_model)
+        current_weights = extract_output_layer_weights(current_local_model)
 
-        # Loop through each client's local model
-        # TODO: ここ range にしちゃだめ。ClientId でループを回す
-        for client_i in range(cfg.federatedlearning.num_clients):
-            local_model = CNNMnist(cfg)  # Create an instance of the CNN model
-            # Load the saved model weights from the current round
+        is_reliable, _ = check_output_layer_changes(
+            current_weight=current_weights,
+            previous_weight=previous_weights,
+            threshold=cfg.federatedlearning.time_series_similarity_threshold,
+        )
+
+        if not is_reliable:
+            print(
+                f"[TimeSeriesSimilarity] CLIENT {client_id} is BYZANTINE CLIENT!!!"
+            )
+
+    return is_reliable
+
+
+def monitor_trust_scored_clustering(
+    round: int,
+    selected_client_idx: set[int],
+    byzantine_clients: set[int],
+    client_history_df: list[DataFrame],
+    cfg: DictConfig,
+) -> set[int]:
+    local_model_updates = []
+    if cfg.train.dataset == "mnist":
+        local_model = CNNMnist(cfg=cfg)
+    elif cfg.train.dataset == "cifar":
+        local_model = ResNet18()
+
+    print(f"[TrustScoredClustering] {selected_client_idx=}")
+    print(f"[TrustScoredClustering] {byzantine_clients=}")
+
+    for client_id in selected_client_idx:
+        if client_id not in byzantine_clients:
             local_model.load_state_dict(
                 torch.load(
-                    client_history_df[client_i]["local_weight_path"][round]
+                    client_history_df[client_id]["local_weight_path"][round]
                 )
             )
-            # Flatten the weights of the last fully-connected layer
-            weight_local_model = local_model.fc2.weight.data.view(-1)
-            X.append(weight_local_model)  # Append the weights to the list
-        # Convert the list to a numpy array
-        X = np.array(X)  # type: ignore
+            weight_local_model = flatten_state_dict(local_model)
+            local_model_updates.append(weight_local_model)
 
-        scaler = StandardScaler()  # Initialize a scaler for standardization
-        X_scaled = scaler.fit_transform(X)  # Standardize the data
+    updates = np.array(local_model_updates)
 
-        # Perform k-means clustering with the standardized data
-        kmeans = KMeans(n_clusters=n_clusters, random_state=0, n_init="auto")
-        kmeans.fit(X_scaled)
+    # perplexity must be less than n_samples
+    if len(updates) <= 3:
+        return byzantine_clients
 
-        # グローバルモデルを基準に、正しいとするクラスターを決める
-        global_model_cluster_label = kmeans.predict(X)[0]
-        # criterion_cluster_indexes = np.where(kmeans.labels_ == global_model_cluster_label)[0]
-        not_criterion_cluster_indexes = np.where(
-            kmeans.labels_ != global_model_cluster_label
-        )[0]
+    # Perform clustering in each round and record the results
+    # Step 1: Apply t-SNE for dimensionality reduction to 2D
+    # Step 2: Clustering with K-means
+    tsne_result, clusters, cluster_labels = tsne_clustering(updates)
+    # visualize_clusters(tsne_result, clusters, round + 1)
 
-        # criterion_cluster_data = X[criterion_cluster_indexes]
+    # Step 2: Calculate silhouette score
+    clustering_score = silhouette_score(tsne_result, clusters)
+    print(
+        f"Round {round + 1} Clustering Silhouette Score: {clustering_score:.2f}"
+    )
 
-        # Print out a message showing the potential Byzantine clients
-        print(
-            f"グローバルモデルの属するクラスターとは異なるクラスターに属する \
-    Clinet ID {not_criterion_cluster_indexes} \
-    が Byzantine Client である可能性が高いです"
+    if (
+        clustering_score
+        < cfg.federatedlearning.clustering_silhouette_score_threshold
+    ):
+        print(f"Round {round + 1}: Clusters are not well separated.")
+        return byzantine_clients  # Abort and move to the next round
+
+    # Step 3: Calculate trust scores using FoolsGold
+    similarity_matrix = np.zeros(
+        (
+            len(selected_client_idx) - len(byzantine_clients),
+            len(selected_client_idx) - len(byzantine_clients),
         )
+    )
+    for i in range(len(selected_client_idx)):
+        for j in range(i, len(selected_client_idx)):
+            if i in byzantine_clients or j in byzantine_clients:
+                continue
+            sim = 1 - cosine(updates[i], updates[j])
+            similarity_matrix[i, j] = sim
+            similarity_matrix[j, i] = sim
 
-        # クラスター重心の座標
-        cluster_centers = kmeans.cluster_centers_
-        # クラスター重心間の対称行列距離を計算
-        cluster_distances = pairwise_distances(cluster_centers)
-        print(f"クラスター重心間の距離行列: {cluster_distances[0][1]}")
+    trust_scores = np.ones(len(selected_client_idx))
+    for i in selected_client_idx:
+        for j in selected_client_idx:
+            if i in byzantine_clients or j in byzantine_clients:
+                continue
+            if i != j:
+                trust_scores[i] *= 1 - similarity_matrix[i, j]
 
-        # Update the reliability list marking Byzantine candidates as unreliable
-        for i in range(cfg.federatedlearning.num_clients):
-            if i in not_criterion_cluster_indexes:
-                is_reliable_list[i] = False
+    trust_scores /= np.max(trust_scores)  # Normalize
 
-    # Return the updated lists of client reliability and cluster distances
-    return is_reliable_list, cluster_distance_list
+    # Step 4: Calculate trust score sum for each cluster and identify anomalous cluster
+    cluster_0_sum = trust_scores[cluster_labels == 0].sum()
+    cluster_1_sum = trust_scores[cluster_labels == 1].sum()
+
+    anomalous_cluster = 0 if cluster_0_sum < cluster_1_sum else 1
+
+    for client_id in selected_client_idx:
+        if client_id in byzantine_clients:
+            continue
+        if cluster_labels[client_id] == anomalous_cluster:
+            byzantine_clients.add(client_id)
+            # is_reliable_list[client_id] = False
+
+    print(f"{clusters=}")
+    print(f"{cluster_0_sum=}, {cluster_1_sum=}")
+    print(f"{anomalous_cluster=}")
+
+    return byzantine_clients

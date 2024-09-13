@@ -4,6 +4,7 @@ import copy
 import math
 import os
 import pickle
+import random
 import time
 from logging import getLogger
 from logging.config import dictConfig
@@ -23,10 +24,12 @@ from tqdm import tqdm
 
 from federatedlearning.client.training import LocalUpdate
 from federatedlearning.datasets.common import get_dataset
-from federatedlearning.models.cnn import CNNCifar, CNNMnist
+from federatedlearning.models.cnn import CNNMnist
 from federatedlearning.reputation.monitoring import (
-    monitor_cross_sectional,
-    monitore_time_series,
+    eliminate_byzantine_clients,
+    monitor_time_series_convergence,
+    monitor_time_series_similarity,
+    monitor_trust_scored_clustering,
 )
 from federatedlearning.server.aggregations.aggregators import (
     average_weights,
@@ -165,13 +168,19 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
                 ),
                 1,
             )
-            selected_clients_idx: NDArray[
-                Shape[f"1, {num_selected_clients}"], Int
-            ] = np.random.choice(
-                range(cfg.federatedlearning.num_clients),
-                num_selected_clients,
-                replace=False,
-            )
+            # selected_clients_idx: NDArray[
+            #     Shape[f"1, {num_selected_clients}"], Int
+            # ] = np.random.choice(
+            #     range(cfg.federatedlearning.num_clients),
+            #     num_selected_clients,
+            #     replace=False,
+            # )
+            selected_clients_idx: set[int] = set(
+                np.random.choice(
+                    range(cfg.federatedlearning.num_clients),
+                    num_selected_clients,
+                    replace=False,
+                )
 
             # Loop over each selected client to perform local model updates
             for client_id in selected_clients_idx:
@@ -228,38 +237,41 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
                 mlflow.log_artifact(save_path)
                 # Time-Series Monitoring
                 if cfg.federatedlearning.enable_time_series_monitoring:
-                    (
-                        is_reliable,
-                        euclidean_distance_list,
-                    ) = monitore_time_series(
+                    is_reliable = monitor_time_series_convergence(
                         client_id=client_id,
                         round=round,
+                        global_model_record_df=global_model_record_df,
+                        byzantine_clients=byzantine_clients,
                         client_history_df=client_history_df,
                         euclidean_distance_list=euclidean_distance_list,
                         cfg=cfg,
                     )
                     # Check if the client is marked as unreliable (Byzantine client)
                     if not is_reliable:
-                        # Remove the local weights and losses of the unreliable client
-                        local_weights.pop()
-                        local_losses.pop()
                         # Add the client ID to the set of Byzantine clients
                         byzantine_clients.add(client_id)
+                    else:
+                        is_reliable = monitor_time_series_similarity(
+                            client_id=client_id,
+                            round=round,
+                            byzantine_clients=byzantine_clients,
+                            client_history_df=client_history_df,
+                            cfg=cfg,
+                        )
+                        # Check if the client is marked as unreliable (Byzantine client)
+                        if not is_reliable:
+                            # Add the client ID to the set of Byzantine clients
+                            byzantine_clients.add(client_id)
 
-            # TODO: Cross-sectional Monitoring
-            if (
-                cfg.federatedlearning.enable_cross_sectional_monitoring
-                and not finish_cross_sectional
-            ):
-                (
-                    is_reliable_list,
-                    cluster_distance_list,
-                ) = monitor_cross_sectional(
-                    round,
-                    num_selected_clients,
-                    client_history_df,
-                    cfg,
-                    cluster_distance_list,
+            # 信頼スコアに基づくクラスタリング
+            # selected_client_idx にしないといけないが，パターン2の実験のためだけのハリボテ
+            if cfg.federatedlearning.enable_trust_scored_clustering:
+                byzantine_clients = monitor_trust_scored_clustering(
+                    round=round,
+                    selected_client_idx=selected_clients_idx,
+                    byzantine_clients=byzantine_clients,
+                    client_history_df=client_history_df,
+                    cfg=cfg,
                 )
                 exclude_clients: list[int] = []
                 for i in range(len(selected_clients_idx)):
@@ -284,8 +296,28 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
                 #     byzantine_clients.add(selected_clients_idx[i])
                 # finish_cross_sectional = True
 
-            # TODO: if cfg.federatedlearning.num_byzantines / num_selected_clients > 0.5 and cfg.federatedlearning.warmup_rounds == 0
-            # のときどうにかする
+            # TODO: Refactor
+            # Eliminate Byzantine Clients (before aggregation)
+            local_weights, local_losses = eliminate_byzantine_clients(
+                local_weights, local_losses, byzantine_clients
+            )
+            #     local_weights = [
+            #         v
+            #         for i, v in enumerate(local_weights)
+            #         if i not in byzantine_clients
+            #     ]
+            #     local_losses = [
+            #         v
+            #         for i, v in enumerate(local_losses)
+            #         if i not in byzantine_clients
+            #     ]
+            assert len(local_weights) == len(selected_clients_idx) - len(
+                byzantine_clients
+            )
+            # for client_id in sorted(selected_clients_idx, reverse=True):
+            #     if client_id in byzantine_clients:
+            #         local_weights.pop(client_id)
+            #         local_losses.pop(client_id)
 
             # Aggregate local weights to form new global model weights (FedAVG)
             if cfg.federatedlearning.aggregation == "mean":
@@ -352,7 +384,6 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
             mlflow.log_artifact(save_path)
 
             # Occasionally print summary statistics of the training progress
-            if (round + 1) % print_every == 0:
             logger.info(
                 f" \nAvg Training Stats after {round+1} global rounds:"
             )
