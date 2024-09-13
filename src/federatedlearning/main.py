@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import copy
 import math
 import os
@@ -144,10 +143,6 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
         euclidean_distance_list: list[list[float]] = [
             [math.inf] * cfg.federatedlearning.rounds
         ] * cfg.federatedlearning.num_clients
-        cluster_distance_list: list[float] = [
-            math.inf
-        ] * cfg.federatedlearning.rounds
-        finish_cross_sectional: bool = False
         # Initialize an empty set to store Byzantine clients
         byzantine_clients: set[int] = set()
 
@@ -168,24 +163,19 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
                 ),
                 1,
             )
-            # selected_clients_idx: NDArray[
-            #     Shape[f"1, {num_selected_clients}"], Int
-            # ] = np.random.choice(
-            #     range(cfg.federatedlearning.num_clients),
-            #     num_selected_clients,
-            #     replace=False,
-            # )
             selected_clients_idx: set[int] = set(
                 np.random.choice(
                     range(cfg.federatedlearning.num_clients),
                     num_selected_clients,
                     replace=False,
                 )
+            )
+            logger.info(f"[main.py] {byzantine_clients=}")
 
             # Loop over each selected client to perform local model updates
             for client_id in selected_clients_idx:
-                if client_id in byzantine_clients:
-                    continue
+                # if client_id in byzantine_clients:
+                #     continue
                 local_model = LocalUpdate(
                     cfg=cfg,
                     dataset=train_dataset,
@@ -194,6 +184,14 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
                 )
                 # Check if the current index is within the number of byzantine clients specified in the configuration
                 if (
+                    client_id < cfg.federatedlearning.num_byzantines // 2
+                    and cfg.federatedlearning.warmup_rounds // 2 <= round
+                ):
+                    # Perform a byzantine attack on the local model by altering its weights and compute loss
+                    weight, loss = local_model.byzantine_attack(
+                        model=copy.deepcopy(global_model), global_round=round
+                    )
+                elif (
                     client_id < cfg.federatedlearning.num_byzantines
                     and cfg.federatedlearning.warmup_rounds <= round
                 ):
@@ -201,6 +199,14 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
                     weight, loss = local_model.byzantine_attack(
                         model=copy.deepcopy(global_model), global_round=round
                     )
+                # if (
+                #     client_id < cfg.federatedlearning.num_byzantines
+                #     and cfg.federatedlearning.warmup_rounds <= round
+                # ):
+                #     # Perform a byzantine attack on the local model by altering its weights and compute loss
+                #     weight, loss = local_model.byzantine_attack(
+                #         model=copy.deepcopy(global_model), global_round=round
+                #     )
                 else:
                     # Otherwise, perform a standard update of model weights based on local data and compute loss
                     weight, loss = local_model.update_weights(
@@ -273,28 +279,8 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
                     client_history_df=client_history_df,
                     cfg=cfg,
                 )
-                exclude_clients: list[int] = []
-                for i in range(len(selected_clients_idx)):
-                    if not is_reliable_list[i]:
-                        exclude_clients.append(selected_clients_idx[i])
-                # for a, is_reliable in zip(selected_clients_idx, is_reliable_list):
-                # for i, is_reliable in enumerate(
-                #     sorted(is_reliable_list, reverse=True)
-                # ):
-                #     if not is_reliable:
-                #         # Remove the local weights and losses of the unreliable client
-                #         local_weights.pop(i)
-                #         local_losses.pop(i)
-                #         # Add the client ID to the set of Byzantine clients
-                #         byzantine_clients.add(selected_clients_idx[i])
-                #         # cross-sectionalは一度きり
-                #         finish_cross_sectional = True
-                # Cross-Sectional Monitoring の 除外コード部分
-                # for i in sorted(exclude_clients, reverse=True):
-                #     local_weights.pop(i)
-                #     local_losses.pop(i)
-                #     byzantine_clients.add(selected_clients_idx[i])
-                # finish_cross_sectional = True
+                logger.info(f"{selected_clients_idx=}")
+                logger.info(f"{byzantine_clients=}")
 
             # TODO: Refactor
             # Eliminate Byzantine Clients (before aggregation)
@@ -320,6 +306,7 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
             #         local_losses.pop(client_id)
 
             # Aggregate local weights to form new global model weights (FedAVG)
+            # TODO: len(local_weights) > 0 でないときに IndexError
             if cfg.federatedlearning.aggregation == "mean":
                 global_weights = average_weights(local_weights)
             elif cfg.federatedlearning.aggregation == "median":
@@ -455,6 +442,10 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
             "\n Total Run Time: {0:0.4f}".format(time.time() - start_time)
         )
         mlflow.log_artifact("/workspace/outputs/main.log")
+
+        logger.info(f"Experiment {cfg.mlflow.run_name} is Done.")
+        logger.info(f"{EXPERIMENT_ID=}")
+        logger.info(f"{RUN_ID=}")
         return test_acc
 
 
