@@ -1,6 +1,8 @@
 import copy
 
+import numpy as np
 import torch
+from sklearn.metrics.pairwise import cosine_similarity
 
 
 def average_weights(
@@ -112,6 +114,57 @@ def krum(
 
     weight_krum = copy.deepcopy(weights[selected_index])
     return weight_krum
+
+
+def foolsgold(
+    local_weights: list[dict[str, torch.Tensor]],
+) -> dict[str, torch.Tensor]:
+    """
+    Aggregates the weights from multiple state dictionaries using FoolsGold algorithm.
+
+    Args:
+        local_weights (list of dict): A list where each element is a state dictionary of model weights.
+
+    Returns:
+        A dict of the same structure as the input but with aggregated weights.
+    """
+
+    # Initialize the averaged weights with deep copied weights from the first model
+    weight_foolsgold: dict[str, torch.Tensor] = copy.deepcopy(local_weights[0])
+
+    # Convert the local weights into a matrix for cosine similarity calculation
+    weight_list = []
+    for weights in local_weights:
+        weight_vector = torch.cat(
+            [torch.flatten(weights[key]) for key in sorted(weights.keys())]
+        ).numpy()
+        weight_list.append(weight_vector)
+
+    weight_matrix = np.array(weight_list)
+
+    # Calculate cosine similarity matrix
+    cosine_sim = cosine_similarity(weight_matrix)
+
+    # Calculate trust scores based on cosine similarity
+    similarities_sum = np.sum(cosine_sim, axis=1)
+    max_similarity = np.max(similarities_sum)
+    min_similarity = np.min(similarities_sum)
+
+    trust_scores = 1 - (
+        (similarities_sum - min_similarity) / (max_similarity - min_similarity)
+    )
+
+    # Normalize trust scores so that their sum equals to the number of clients
+    trust_scores = trust_scores / np.mean(trust_scores)
+
+    # Aggregate weights based on trust scores
+    for weight_key in weight_foolsgold.keys():
+        weight_foolsgold[weight_key] = sum(
+            trust_scores[i] * local_weights[i][weight_key]
+            for i in range(len(local_weights))
+        )
+
+    return weight_foolsgold
 
 
 # def marginal_median(
