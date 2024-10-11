@@ -1,9 +1,10 @@
-import copy
 import pickle
+import sys
 
 import pika
 import torch
 import torch.nn as nn
+from federatedlearning.server.aggregations.aggregators import average_weights
 
 
 # PyTorchの簡単なモデル定義
@@ -84,6 +85,10 @@ class FLServerSubscriber:
         self.local_model_weights = []
         self.client_set = set()
 
+        # 実験設定
+        self.num_rounds = 10
+        self.round = 0
+
         self.publisher = FLServerPublisher()
 
         self._connect()
@@ -101,7 +106,7 @@ class FLServerSubscriber:
         # コールバック関数を設定してメッセージを消費し始める
         def callback(ch, method, properties, body):
             client_id = properties.headers.get("client_id")
-            print(f" [x] Received {body} from client_id: {client_id}")
+            print(f" [x] Received from client_id: {client_id}")
 
             # ローカルのモデルおよびオプティマイザのインスタンスを作成
             local_model = SimpleModel()
@@ -118,15 +123,22 @@ class FLServerSubscriber:
 
             # 集約のタイミングをここで決める（例えば、5つのローカルモデルが集まったら）
             if len(self.local_models) >= 2:
-                global_model = aggregate_models(self.local_model_weights)
+                global_model = average_weights(self.local_model_weights)
                 self.local_models.clear()
                 self.local_model_weights.clear()
                 self.client_set.clear()
 
                 serialized_model = pickle.dumps(global_model)
 
-                # メッセージ送信
-                self.publisher.publish(serialized_model)
+                print(f" [x] Round {self.round} DONE")
+                if self.round < self.num_rounds:
+                    self.round += 1
+
+                    # メッセージ送信
+                    self.publisher.publish(serialized_model)
+                else:
+                    # 終わり
+                    sys.exit()
 
         # Consumeの開始
         self.channel.basic_consume(
@@ -155,35 +167,6 @@ def load_global_model(global_model_path: str) -> nn.Module:
     global_model.load_state_dict(torch.load(global_model_path))
     print(f" [x] Loaded global model from {global_model_path}")
     return global_model
-
-
-def aggregate_models(
-    local_weights: list[dict[str, torch.Tensor]],
-) -> dict[str, torch.Tensor]:
-    """
-    Averages the weights from multiple state dictionaries (each representing model parameters).
-
-    Args:
-        local_weights (list of dict): A list where each element is a state dictionary of model weights.
-
-    Returns:
-        A dict of the same structure as the input but with averaged weights.
-    """
-    # Initialize the averaged weights with deep copied weights from the first model
-    weight_avg: dict[str, torch.Tensor] = copy.deepcopy(local_weights[0])
-
-    # Iterate over each key in the weight dictionary
-    for weight_key in weight_avg.keys():
-        # Sum the corresponding weights from all models starting from the second one
-        for weight_i in range(1, len(local_weights)):
-            weight_avg[weight_key] += local_weights[weight_i][weight_key]
-        # Divide the summed weights by the number of models to get the average
-        weight_avg[weight_key] = torch.div(
-            weight_avg[weight_key], len(local_weights)
-        )
-    print(" [x] Aggregated models and updated global model")
-    # Return the averaged weights
-    return weight_avg
 
 
 if __name__ == "__main__":
