@@ -1,30 +1,25 @@
+import copy
 import pickle
 
+import hydra
 import pika
 import torch
 import torch.nn as nn
-
-
-class SimpleModel(nn.Module):
-    def __init__(self):
-        super(SimpleModel, self).__init__()
-        self.fc1 = nn.Linear(3, 10)
-        self.fc2 = nn.Linear(10, 1)
-
-    def forward(self, x):
-        x = torch.relu(self.fc1(x))
-        x = torch.sigmoid(self.fc2(x))
-        return x
+from federatedlearning.client.training import LocalUpdate
+from federatedlearning.datasets.common import get_dataset
+from federatedlearning.models.cnn import CNNMnist
+from omegaconf import DictConfig
 
 
 class FLClient:
     def __init__(
         self,
-        host="rabbitmq",
-        local_queue="local_model_queue",
-        exchage_name="global_model_exchange",
-        username="guest",
-        password="guest",
+        cfg: DictConfig,
+        host: str = "rabbitmq",
+        local_queue: str = "local_model_queue",
+        exchage_name: str = "global_model_exchange",
+        username: str = "guest",
+        password: str = "guest",
     ):
         self.host = host
         self.credentials = pika.PlainCredentials(
@@ -34,6 +29,24 @@ class FLClient:
         self.exchange_name = exchage_name
         self.connection = None
         self.channel = None
+
+        # 実験設定
+        self.cfg = cfg
+        self.client_id = cfg.client.client_id
+        # Load the dataset and partition it according to the client groups
+        (
+            self.train_dataset,
+            self.test_dataset,
+            self.client_groups,
+        ) = get_dataset(self.cfg)
+        # Determine the computing device (GPU or CPU)
+        self.device: torch.device = (
+            torch.device(f"cuda:{cfg.train.gpu}")
+            if cfg.train.gpu is not None and cfg.train.gpu >= 0
+            else torch.device("cpu")
+        )
+        self.num_epochs = 3
+
         self._connect()
 
     def _connect(self):
@@ -49,13 +62,18 @@ class FLClient:
 
     def receive_global_model(self):
         def callback(ch, method, properties, body):
+            round = properties.headers.get("round")
             state_dict = pickle.loads(body)
-            model = SimpleModel()
-            model.load_state_dict(state_dict)
+            global_model = CNNMnist(self.cfg)
+            global_model.load_state_dict(state_dict)
+            global_model.to(self.device)
             print(" [x] Received initial global model")
 
-            # ローカル学習を行い、モデルをサーバに送信
-            self.send_local_model(model, client_id="1")
+            # ローカル学習
+            local_model = self.local_train(global_model, round)
+
+            # ローカルモデルをサーバに送信
+            self.send_local_model(model=local_model, client_id=self.client_id)
 
         self.channel.basic_consume(
             queue=self.global_queue,
@@ -68,11 +86,22 @@ class FLClient:
         except KeyboardInterrupt:
             self.stop_consuming()
 
-    def send_local_model(self, model: nn.Module, client_id: str):
-        # Simulate local training (could be replaced with actual training logic)
-        # local_train(model)
+    def local_train(self, global_model: nn.Module, round: int):
+        print("[x] Training model locally...")
+        local_model = LocalUpdate(
+            cfg=self.cfg,
+            dataset=self.train_dataset,
+            client_id=self.client_id,
+            idxs=self.client_groups[self.client_id],
+        )
+        weight, loss = local_model.update_weights(
+            model=copy.deepcopy(global_model), global_round=round
+        )
 
-        serialized_model = pickle.dumps(model.state_dict())
+        return weight
+
+    def send_local_model(self, model: nn.Module, client_id: str):
+        serialized_model = pickle.dumps(model)
         headers = {"client_id": client_id}
         self.channel.basic_publish(
             exchange="",
@@ -91,11 +120,18 @@ class FLClient:
             self.connection.close()
 
 
-if __name__ == "__main__":
-    client = FLClient()
+@hydra.main(
+    version_base="1.1", config_path="/workspace/config", config_name="default"
+)
+def main(cfg: DictConfig):
+    client = FLClient(cfg)
     try:
         # サーバからのグローバルモデルを待ち、それを受信
         client.receive_global_model()
     finally:
         # 終了時に接続を閉じる
         client.close()
+
+
+if __name__ == "__main__":
+    main()

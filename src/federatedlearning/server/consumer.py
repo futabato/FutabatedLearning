@@ -1,23 +1,15 @@
 import pickle
 import sys
 
+import hydra
 import pika
 import torch
-import torch.nn as nn
+from federatedlearning.datasets.common import get_dataset
+from federatedlearning.models.cnn import CNNMnist
 from federatedlearning.server.aggregations.aggregators import average_weights
-
-
-# PyTorchの簡単なモデル定義
-class SimpleModel(nn.Module):
-    def __init__(self):
-        super(SimpleModel, self).__init__()
-        self.fc1 = nn.Linear(3, 10)
-        self.fc2 = nn.Linear(10, 1)
-
-    def forward(self, x):
-        x = torch.relu(self.fc1(x))
-        x = torch.sigmoid(self.fc2(x))
-        return x
+from federatedlearning.server.inferencing import inference
+from omegaconf import DictConfig
+from pika.exceptions import AMQPError
 
 
 class FLServerPublisher:
@@ -46,15 +38,17 @@ class FLServerPublisher:
             exchange=self.exchange_name, exchange_type="fanout"
         )
 
-    def publish(self, serialized_data: bytes):
+    def publish(self, round: int, serialized_data: bytes):
         try:
+            headers = {"round": round}
             self.channel.basic_publish(
                 exchange=self.exchange_name,
                 routing_key="",
                 body=serialized_data,
+                properties=pika.BasicProperties(headers=headers),
             )
             print(f" [x] Published serialized model to {self.exchange_name}")
-        except pika.exceptions.AMQPError as e:
+        except AMQPError as e:
             # エラーハンドリング: 必要に応じてログを記録したり再試行したりする
             print("An error occurred: ", e)
             self._connect()  # 必要なら再接続を試みる
@@ -67,10 +61,11 @@ class FLServerPublisher:
 class FLServerSubscriber:
     def __init__(
         self,
-        host="rabbitmq",
-        queue_name="local_model_queue",
-        username="guest",
-        password="guest",
+        cfg: DictConfig,
+        host: str = "rabbitmq",
+        queue_name: str = "local_model_queue",
+        username: str = "guest",
+        password: str = "guest",
     ):
         self.host = host
         self.credentials = pika.PlainCredentials(
@@ -80,13 +75,25 @@ class FLServerSubscriber:
         self.connection = None
         self.channel = None
 
+        self.cfg = cfg
+        # Load the dataset and partition it according to the client groups
+        (
+            self.train_dataset,
+            self.test_dataset,
+            self.client_groups,
+        ) = get_dataset(self.cfg)
+        self.device: torch.device = (
+            torch.device(f"cuda:{cfg.train.gpu}")
+            if cfg.train.gpu is not None and cfg.train.gpu >= 0
+            else torch.device("cpu")
+        )
+
         # モデル集約と重みのリスト
         self.local_models = []
         self.local_model_weights = []
         self.client_set = set()
 
         # 実験設定
-        self.num_rounds = 10
         self.round = 0
 
         self.publisher = FLServerPublisher()
@@ -108,8 +115,10 @@ class FLServerSubscriber:
             client_id = properties.headers.get("client_id")
             print(f" [x] Received from client_id: {client_id}")
 
+            global_model = CNNMnist(self.cfg)
+
             # ローカルのモデルおよびオプティマイザのインスタンスを作成
-            local_model = SimpleModel()
+            local_model = CNNMnist(self.cfg)
             model_binary = pickle.loads(body)
             local_model.load_state_dict(model_binary)
 
@@ -117,25 +126,32 @@ class FLServerSubscriber:
             self.local_model_weights.append(local_model.state_dict())
             self.local_models.append(local_model)
 
-            print(len(self.local_models))
-
             print(f" [x] Received model from client {client_id}")
 
-            # 集約のタイミングをここで決める（例えば、5つのローカルモデルが集まったら）
+            # 集約のタイミングをここで決める（例えば、2つのローカルモデルが集まったら）
             if len(self.local_models) >= 2:
-                global_model = average_weights(self.local_model_weights)
+                global_model_weight = average_weights(self.local_model_weights)
+                global_model.load_state_dict(global_model_weight)
+                global_model.to(self.device)
                 self.local_models.clear()
                 self.local_model_weights.clear()
                 self.client_set.clear()
 
-                serialized_model = pickle.dumps(global_model)
+                serialized_model = pickle.dumps(global_model_weight)
 
                 print(f" [x] Round {self.round} DONE")
-                if self.round < self.num_rounds:
+
+                test_acc, _ = inference(
+                    cfg=self.cfg,
+                    model=global_model,
+                    test_dataset=self.test_dataset,
+                )
+                print(f"[x] Accuracy: {test_acc}")
+                if self.round < self.cfg.federatedlearning.rounds:
                     self.round += 1
 
                     # メッセージ送信
-                    self.publisher.publish(serialized_model)
+                    self.publisher.publish(self.round, serialized_model)
                 else:
                     # 終わり
                     sys.exit()
@@ -161,26 +177,25 @@ class FLServerSubscriber:
             self.connection.close()
 
 
-def load_global_model(global_model_path: str) -> nn.Module:
-    # グローバルモデルの作成と初期化
-    global_model = SimpleModel()
-    global_model.load_state_dict(torch.load(global_model_path))
-    print(f" [x] Loaded global model from {global_model_path}")
-    return global_model
-
-
-if __name__ == "__main__":
-    global_model = SimpleModel()
+@hydra.main(
+    version_base="1.1", config_path="/workspace/config", config_name="default"
+)
+def main(cfg: DictConfig):
+    global_model = CNNMnist(cfg=cfg)
     state_dict = global_model.state_dict()
     serialized_model = pickle.dumps(state_dict)
 
     publisher = FLServerPublisher()
     # メッセージ送信
-    publisher.publish(serialized_model)
-    subscriber = FLServerSubscriber()
+    publisher.publish(round=0, serialized_data=serialized_model)
+    subscriber = FLServerSubscriber(cfg)
     try:
         # メッセージの受信を開始
         subscriber.start_consuming()
     finally:
         # 終了時に接続を閉じる
         subscriber.close()
+
+
+if __name__ == "__main__":
+    main()
