@@ -19,3 +19,15 @@ services:
       - ./:/workspace
     stdin_open: true
     tty: true
+  rabbitmq:
+    # -management を付与したイメージの場合、15672ポートでManagement Plugin(Web UIのようなもの)が利用できるようになる
+    # Management Pluginのドキュメント: https://www.rabbitmq.com/management.html
+    # イメージは現時点で最新のものを指定している
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - 5672:5672
+      - 15672:15672
+    # データの永続化
+    volumes:
+      - ./docker/rabbitmq/data:/var/lib/rabbitmq
