@@ -2,6 +2,7 @@ defaults:
   - mlflow: default
   - train: default
   - federatedlearning: default
+  - client: default
   - override hydra/sweeper: optuna
 hydra:
   run:
