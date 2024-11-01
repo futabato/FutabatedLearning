@@ -16,8 +16,8 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
+import torchvision
 import yaml
-from nptyping import Int, NDArray, Shape
 from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
 
@@ -119,7 +119,8 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
         if cfg.train.dataset == "mnist":
             global_model = CNNMnist(cfg=cfg)
         elif cfg.train.dataset == "cifar":
-            global_model = CNNCifar(cfg=cfg)
+            global_model = torchvision.models.resnet18(weights="IMAGENET1K_V1")
+            global_model.fc = torch.nn.Linear(global_model.fc.in_features, 10)
 
         # Prepare the global model for training and
         # send it to the designated computational device
