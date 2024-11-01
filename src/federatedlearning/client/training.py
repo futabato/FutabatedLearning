@@ -58,12 +58,12 @@ class LocalUpdate(object):
         )
         validloader: DataLoader = DataLoader(
             DatasetSplit(dataset, idxs_val),
-            batch_size=int(len(idxs_val) / 10),
+            batch_size=self.cfg.train.local_batch_size,
             shuffle=False,
         )
         testloader: DataLoader = DataLoader(
             DatasetSplit(dataset, idxs_test),
-            batch_size=int(len(idxs_test) / 10),
+            batch_size=self.cfg.train.local_batch_size,
             shuffle=False,
         )
         return trainloader, validloader, testloader

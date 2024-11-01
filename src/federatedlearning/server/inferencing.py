@@ -39,7 +39,7 @@ def inference(
     criterion = nn.NLLLoss().to(device)
 
     # Create DataLoader for the testing set
-    testloader = DataLoader(test_dataset, batch_size=128, shuffle=False)
+    testloader = DataLoader(test_dataset, batch_size=cfg.train.local_batch_size, shuffle=False)
 
     # Loop through the dataset using DataLoader
     images: torch.Tensor
