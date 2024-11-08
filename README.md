@@ -1,26 +1,62 @@
 # FutabatedLearning
 
-This is a Federated Learning Framework for security researcher (not practical).
+## プロジェクトの概要
 
-This implementation was developed by forking from [Federated-Learning (PyTorch)](https://github.com/AshwinRJ/Federated-Learning-PyTorch), a vanilla implementation of the paper "[Communication-Efficient Learning of Deep Networks from Decentralized Data](https://arxiv.org/abs/1602.05629)".
+FutabatedLearning は、連合学習（Federated Learning）のアルゴリズム検証を目的としたフレームワークです。
+特に、セキュリティの研究者向けに設計されており、連合学習の実験環境を提供することで、効率的に仮説検証に取り組むことができます。
 
-## Setup
+FutabatedLearning は、連合学習の研究を支援するために、以下の機能を提供します：
 
-### Dev Containers (Recommend)
+- マルチホスト環境での連合学習
+- より効率的にデータ分析を実施するための Jupyter Notebook テンプレート
+- ビザンチン耐性のある集約手法の実装
+- ビザンチン攻撃手法の実装
 
-1. Open Command Palette
-2. Select `Dev Containers: Reopen in Container`
+FutabatedLearning は、研究目的での使用を前提としており、以下の範囲で利用可能です：
 
-### Docker Image Build
+- 学術研究やプロトタイプ開発
+- 連合学習アルゴリズムの評価と比較
+- セキュリティ研究における実験的検証
+
+本プロダクトは、商用利用や大規模な実運用を目的としていません。
+あくまで研究目的であるため、連合学習の問題設定として一部厳密さを欠いた設計になっています。
+
+## ディレクトリ構造
 
 ```
-docker image build -t futabated-learning .
+FutabatedLearning/
+ ├── data/ # データセットを格納するディレクトリ
+ ├── notebooks/ # Jupyter Notebook テンプレート
+ ├── src/
+ │    ├── attack/ # 攻撃手法の実装
+ │    └── federatedlearning/ # 連合学習の実装
+ │         └── server/
+ │              └── aggregations/ # 集約手法の実装
+ ├── outputs/ # 実験で生成されるデータの出力先
+ └── mlruns/ # MLflow のロギングデータ
 ```
 
-### Docker Container Run
+### 集約手法
+
+以下は、現在 FutabatedLearning に実装されている集約手法とその提案論文の一覧です：
+
+| 集約手法 | 提案論文                                                                                                                                                                        |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FedAvg   | [Communication-Efficient Learning of Deep Networks from Decentralized Data](https://arxiv.org/abs/1602.05629)                                                                   |
+| Krum     | [Machine Learning with Adversaries: Byzantine Tolerant Gradient Descent](https://proceedings.neurips.cc/paper_files/paper/2017/file/f4b9ec30ad9f68f89b29639786cb62ef-Paper.pdf) |
+
+### 攻撃手法
+
+以下は、現在 FutabatedLearning に実装されている攻撃手法とその提案論文の一覧です：
+
+| 攻撃手法          | 提案論文                                                                                            |
+| ----------------- | --------------------------------------------------------------------------------------------------- |
+| Label Flip Attack | [Poisoning Attacks against Support Vector Machines](https://dl.acm.org/doi/10.5555/3042573.3042761) |
+
+## 環境構築
 
 ```
-docker container run --gpus all --rm -it -p 5000:5000 -e PYTHONPATH=/workspace/src/ -v ${PWD}:/workspace futabated-learning /bin/bash
+docker compose build
 ```
 
 ## Run an experiment
