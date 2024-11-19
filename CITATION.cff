@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "FutabatedLearning"
+version: "1.0.0"
+date-released: "2024-11-01"
+authors:
+  - family-names: "Hashimoto"
+    given-names: "Shunsuke"
+license: "MIT"
+repository-code: "https://github.com/futabato/FutabatedLearning"
+url: "https://github.com/futabato/FutabatedLearning"

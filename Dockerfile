@@ -25,6 +25,7 @@ RUN curl https://bootstrap.pypa.io/get-pip.py | python3.11
 RUN pip install --upgrade pip && pip install poetry && \
     poetry config virtualenvs.create false && \
     poetry lock --no-update && \
+    poetry run pip install wheel && \
     poetry install --no-root
 
 RUN git config --global --add safe.directory /workspace
