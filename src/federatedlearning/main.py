@@ -87,7 +87,7 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
         # Determine the computational device based on the configuration
         device: torch.device = (
             torch.device(f"cuda:{cfg.train.gpu}")
-            if cfg.train.gpu is not None and cfg.train.gpu >= 0
+            if cfg.train.gpu is not None and cfg.train.gpu > 0
             else torch.device("cpu")
         )
 
@@ -114,12 +114,25 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
         # Load the dataset and partition it according to the client groups
         train_dataset, test_dataset, client_groups = get_dataset(cfg)
 
+        # Visualize the distribution of data samples across clients
+        client_data_sizes = [len(indices) for indices in client_groups.values()]
+        plt.bar(range(len(client_data_sizes)), client_data_sizes)
+        plt.xlabel('Client ID')
+        plt.ylabel('Number of Data Samples')
+        plt.title('Data Samples per Client')
+        plt.savefig("/workspace/outputs/objects/data_samples_per_client.pdf", bbox_inches="tight")
+
+
         # Instantiate the appropriate global model based on the dataset being used
         global_model: nn.Module
         if cfg.train.dataset == "mnist":
             global_model = CNNMnist(cfg=cfg)
         elif cfg.train.dataset == "cifar":
             global_model = torchvision.models.resnet18(weights="IMAGENET1K_V1")
+            # Freeze all layers
+            for param in global_model.parameters():
+                param.requires_grad = False
+            # Replace the last fully connected layer with a new head
             global_model.fc = torch.nn.Linear(global_model.fc.in_features, 10)
 
         # Prepare the global model for training and
@@ -183,16 +196,7 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
                     client_id=client_id,
                     idxs=client_groups[client_id],
                 )
-                # Check if the current index is within the number of byzantine clients specified in the configuration
                 if (
-                    client_id < cfg.federatedlearning.num_byzantines // 2
-                    and cfg.federatedlearning.warmup_rounds // 2 <= round
-                ):
-                    # Perform a byzantine attack on the local model by altering its weights and compute loss
-                    weight, loss = local_model.byzantine_attack(
-                        model=copy.deepcopy(global_model), global_round=round
-                    )
-                elif (
                     client_id < cfg.federatedlearning.num_byzantines
                     and cfg.federatedlearning.warmup_rounds <= round
                 ):
@@ -200,14 +204,6 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
                     weight, loss = local_model.byzantine_attack(
                         model=copy.deepcopy(global_model), global_round=round
                     )
-                # if (
-                #     client_id < cfg.federatedlearning.num_byzantines
-                #     and cfg.federatedlearning.warmup_rounds <= round
-                # ):
-                #     # Perform a byzantine attack on the local model by altering its weights and compute loss
-                #     weight, loss = local_model.byzantine_attack(
-                #         model=copy.deepcopy(global_model), global_round=round
-                #     )
                 else:
                     # Otherwise, perform a standard update of model weights based on local data and compute loss
                     weight, loss = local_model.update_weights(
@@ -336,7 +332,7 @@ def main(cfg: DictConfig) -> float:  # noqa: C901
             list_acc: list[float] = []
             list_loss: list[float] = []
             global_model.eval()  # Set model to evaluation mode for inference
-            for _ in range(cfg.federatedlearning.num_clients):
+            for client_id in range(cfg.federatedlearning.num_clients):
                 local_model = LocalUpdate(
                     cfg=cfg,
                     dataset=train_dataset,
